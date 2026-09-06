@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.betacat.batteryforge.helper</string>
+	<key>Program</key>
+	<string>/Library/PrivilegedHelperTools/com.betacat.batteryforge.helper</string>
+	<key>MachServices</key>
+	<dict>
+		<key>com.betacat.batteryforge.helper</key>
+		<true/>
+	</dict>
+	<key>AssociatedBundleIdentifiers</key>
+	<array>
+		<string>com.betacat.batteryforge</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>ProcessType</key>
+	<string>Interactive</string>
+</dict>
+</plist>
