@@ -5,6 +5,7 @@ enum SidebarPage: String, Hashable {
     case cycle
     case workload
     case history
+    case settings
 }
 
 enum WorkloadLevel: Int, CaseIterable, Identifiable {
@@ -16,17 +17,17 @@ enum WorkloadLevel: Int, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .gentle: String(localized: "workload.level.gentle")
-        case .balanced: String(localized: "workload.level.balanced")
-        case .maximum: String(localized: "workload.level.maximum")
+        case .gentle: String(localized: "workload.level.gentle", locale: AppLanguage.currentLocale)
+        case .balanced: String(localized: "workload.level.balanced", locale: AppLanguage.currentLocale)
+        case .maximum: String(localized: "workload.level.maximum", locale: AppLanguage.currentLocale)
         }
     }
 
     var detail: String {
         switch self {
-        case .gentle: String(localized: "workload.level.gentle.detail")
-        case .balanced: String(localized: "workload.level.balanced.detail")
-        case .maximum: String(localized: "workload.level.maximum.detail")
+        case .gentle: String(localized: "workload.level.gentle.detail", locale: AppLanguage.currentLocale)
+        case .balanced: String(localized: "workload.level.balanced.detail", locale: AppLanguage.currentLocale)
+        case .maximum: String(localized: "workload.level.maximum.detail", locale: AppLanguage.currentLocale)
         }
     }
 

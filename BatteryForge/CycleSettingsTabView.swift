@@ -58,7 +58,7 @@ struct CycleSettingsTabView: View {
                     if cycle.completedCycles > 0 {
                         Text(
                             String.localizedStringWithFormat(
-                                String(localized: "cycle.completed_count"),
+                                String(localized: "cycle.completed_count", locale: AppLanguage.currentLocale),
                                 cycle.completedCycles
                             )
                         )
@@ -127,7 +127,7 @@ struct CycleSettingsTabView: View {
     private var workloadRow: some View {
         LabeledContent("workload.title") {
             HStack(spacing: 8) {
-                Text(workloadEnabled ? workloadSummary : String(localized: "common.disabled"))
+                Text(workloadEnabled ? workloadSummary : String(localized: "common.disabled", locale: AppLanguage.currentLocale))
                     .foregroundStyle(.secondary)
                 Button("common.settings", action: openWorkloadSettings)
                     .controlSize(.small)
@@ -180,7 +180,7 @@ struct CycleSettingsTabView: View {
 
     private var helperUpdateTitle: String {
         cycle.isRunning
-            ? String(localized: "helper.action.reinstall_and_stop")
-            : String(localized: "helper.action.update")
+            ? String(localized: "helper.action.reinstall_and_stop", locale: AppLanguage.currentLocale)
+            : String(localized: "helper.action.update", locale: AppLanguage.currentLocale)
     }
 }

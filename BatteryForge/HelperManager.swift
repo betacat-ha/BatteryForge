@@ -34,38 +34,38 @@ private func localizedHelperMessage(_ rawValue: String) -> String {
     let format: String
     switch payload.key {
     case "helper.runtime.updated_and_stopped":
-        format = String(localized: "helper.runtime.updated_and_stopped")
+        format = String(localized: "helper.runtime.updated_and_stopped", locale: AppLanguage.currentLocale)
     case "helper.runtime.invalid_thresholds":
-        format = String(localized: "helper.runtime.invalid_thresholds")
+        format = String(localized: "helper.runtime.invalid_thresholds", locale: AppLanguage.currentLocale)
     case "helper.runtime.started":
-        format = String(localized: "helper.runtime.started")
+        format = String(localized: "helper.runtime.started", locale: AppLanguage.currentLocale)
     case "helper.runtime.stopping":
-        format = String(localized: "helper.runtime.stopping")
+        format = String(localized: "helper.runtime.stopping", locale: AppLanguage.currentLocale)
     case "helper.runtime.stopped":
-        format = String(localized: "helper.runtime.stopped")
+        format = String(localized: "helper.runtime.stopped", locale: AppLanguage.currentLocale)
     case "helper.runtime.battery_unavailable":
-        format = String(localized: "helper.runtime.battery_unavailable")
+        format = String(localized: "helper.runtime.battery_unavailable", locale: AppLanguage.currentLocale)
     case "helper.runtime.thermal_stop":
-        format = String(localized: "helper.runtime.thermal_stop")
+        format = String(localized: "helper.runtime.thermal_stop", locale: AppLanguage.currentLocale)
     case "helper.runtime.power_control_failed":
-        format = String(localized: "helper.runtime.power_control_failed")
+        format = String(localized: "helper.runtime.power_control_failed", locale: AppLanguage.currentLocale)
     case "helper.runtime.restore_failed":
-        format = String(localized: "helper.runtime.restore_failed")
+        format = String(localized: "helper.runtime.restore_failed", locale: AppLanguage.currentLocale)
     case "helper.runtime.charging":
         guard payload.arguments.count == 2 else { return rawValue }
-        format = String(localized: "helper.runtime.charging")
+        format = String(localized: "helper.runtime.charging", locale: AppLanguage.currentLocale)
         return String.localizedStringWithFormat(format, payload.arguments[0], payload.arguments[1])
     case "helper.runtime.waiting_for_power":
         guard payload.arguments.count == 1 else { return rawValue }
-        format = String(localized: "helper.runtime.waiting_for_power")
+        format = String(localized: "helper.runtime.waiting_for_power", locale: AppLanguage.currentLocale)
         return String.localizedStringWithFormat(format, payload.arguments[0])
     case "helper.runtime.discharging":
         guard payload.arguments.count == 2 else { return rawValue }
-        format = String(localized: "helper.runtime.discharging")
+        format = String(localized: "helper.runtime.discharging", locale: AppLanguage.currentLocale)
         return String.localizedStringWithFormat(format, payload.arguments[0], payload.arguments[1])
     case "helper.runtime.discharging_cpu":
         guard payload.arguments.count == 3 else { return rawValue }
-        format = String(localized: "helper.runtime.discharging_cpu")
+        format = String(localized: "helper.runtime.discharging_cpu", locale: AppLanguage.currentLocale)
         return String.localizedStringWithFormat(
             format,
             payload.arguments[0],
@@ -74,7 +74,7 @@ private func localizedHelperMessage(_ rawValue: String) -> String {
         )
     case "helper.runtime.discharging_cpu_gpu":
         guard payload.arguments.count == 3 else { return rawValue }
-        format = String(localized: "helper.runtime.discharging_cpu_gpu")
+        format = String(localized: "helper.runtime.discharging_cpu_gpu", locale: AppLanguage.currentLocale)
         return String.localizedStringWithFormat(
             format,
             payload.arguments[0],
@@ -95,10 +95,10 @@ enum HelperState: Equatable {
 
     var title: String {
         switch self {
-        case .notRegistered: String(localized: "helper.state.not_installed")
-        case .installing: String(localized: "helper.state.installing")
-        case .enabled: String(localized: "helper.state.enabled")
-        case .unavailable: String(localized: "helper.state.unavailable")
+        case .notRegistered: String(localized: "helper.state.not_installed", locale: AppLanguage.currentLocale)
+        case .installing: String(localized: "helper.state.installing", locale: AppLanguage.currentLocale)
+        case .enabled: String(localized: "helper.state.enabled", locale: AppLanguage.currentLocale)
+        case .unavailable: String(localized: "helper.state.unavailable", locale: AppLanguage.currentLocale)
         }
     }
 }
@@ -129,27 +129,27 @@ final class HelperManager: ObservableObject {
     func install() {
         guard state != .installing else { return }
         guard let helperURL = Bundle.main.url(forResource: "BatteryForgeHelper", withExtension: nil) else {
-            state = .unavailable(String(localized: "helper.error.executable_missing"))
+            state = .unavailable(String(localized: "helper.error.executable_missing", locale: AppLanguage.currentLocale))
             return
         }
         let plistURL = Bundle.main.bundleURL
             .appendingPathComponent("Contents/Library/LaunchDaemons")
             .appendingPathComponent(HelperConstants.plistName)
         guard FileManager.default.fileExists(atPath: plistURL.path) else {
-            state = .unavailable(String(localized: "helper.error.launch_daemon_missing"))
+            state = .unavailable(String(localized: "helper.error.launch_daemon_missing", locale: AppLanguage.currentLocale))
             return
         }
         // Remove the earlier SMAppService registration before migrating to the
         // locally installed daemon. This is harmless when it was never used.
         try? previousService.unregister()
         state = .installing
-        message = String(localized: "helper.status.authorization_prompt")
+        message = String(localized: "helper.status.authorization_prompt", locale: AppLanguage.currentLocale)
         Task.detached {
             do {
                 try HelperInstaller.install(helperURL: helperURL, plistURL: plistURL)
                 await MainActor.run {
                     self.state = .enabled
-                    self.message = String(localized: "helper.status.installed")
+                    self.message = String(localized: "helper.status.installed", locale: AppLanguage.currentLocale)
                     self.connection?.invalidate()
                     self.connection = nil
                     self.refreshStatus()
@@ -274,8 +274,8 @@ enum HelperManagerError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notEnabled: String(localized: "helper.error.not_enabled")
-        case .connectionFailed: String(localized: "helper.error.connection_failed")
+        case .notEnabled: String(localized: "helper.error.not_enabled", locale: AppLanguage.currentLocale)
+        case .connectionFailed: String(localized: "helper.error.connection_failed", locale: AppLanguage.currentLocale)
         case .helper(let message): message
         }
     }
@@ -315,7 +315,7 @@ private enum HelperInstaller {
             let detail = String(data: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             throw HelperManagerError.helper(
-                detail?.isEmpty == false ? detail! : String(localized: "helper.error.install_cancelled")
+                detail?.isEmpty == false ? detail! : String(localized: "helper.error.install_cancelled", locale: AppLanguage.currentLocale)
             )
         }
     }

@@ -32,10 +32,10 @@ struct BatterySnapshot: Equatable {
     }
 
     var stateDescription: String {
-        if isFullyCharged { return String(localized: "battery.state.fully_charged") }
-        if isCharging { return String(localized: "battery.state.charging") }
-        if isConnectedToAC { return String(localized: "battery.state.ac_connected") }
-        return String(localized: "battery.state.on_battery")
+        if isFullyCharged { return String(localized: "battery.state.fully_charged", locale: AppLanguage.currentLocale) }
+        if isCharging { return String(localized: "battery.state.charging", locale: AppLanguage.currentLocale) }
+        if isConnectedToAC { return String(localized: "battery.state.ac_connected", locale: AppLanguage.currentLocale) }
+        return String(localized: "battery.state.on_battery", locale: AppLanguage.currentLocale)
     }
 
     static let preview = BatterySnapshot(
@@ -174,8 +174,8 @@ final class BatteryMonitor: ObservableObject {
             snapshot.healthCondition = localizedHealth(condition)
         } else if let healthPercent = snapshot.healthPercent {
             snapshot.healthCondition = healthPercent >= 80
-                ? String(localized: "battery.health.good")
-                : String(localized: "battery.health.service_recommended")
+                ? String(localized: "battery.health.good", locale: AppLanguage.currentLocale)
+                : String(localized: "battery.health.service_recommended", locale: AppLanguage.currentLocale)
         }
         return true
     }
@@ -202,9 +202,9 @@ final class BatteryMonitor: ObservableObject {
 
     private func localizedHealth(_ value: String) -> String {
         switch value.lowercased() {
-        case "good": String(localized: "battery.health.good")
-        case "fair": String(localized: "battery.health.normal")
-        case "poor", "check battery", "service battery": String(localized: "battery.health.service_recommended")
+        case "good": String(localized: "battery.health.good", locale: AppLanguage.currentLocale)
+        case "fair": String(localized: "battery.health.normal", locale: AppLanguage.currentLocale)
+        case "poor", "check battery", "service battery": String(localized: "battery.health.service_recommended", locale: AppLanguage.currentLocale)
         default: value
         }
     }

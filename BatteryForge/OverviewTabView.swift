@@ -63,12 +63,12 @@ struct OverviewTabView: View {
 
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 14)], spacing: 14) {
-            MetricCard(title: "battery.voltage", value: millivoltDescription, detail: String(localized: "battery.voltage.detail"), icon: "bolt.fill", tint: .yellow)
+            MetricCard(title: "battery.voltage", value: millivoltDescription, detail: String(localized: "battery.voltage.detail", locale: AppLanguage.currentLocale), icon: "bolt.fill", tint: .yellow)
             MetricCard(title: "battery.current", value: currentDescription, detail: currentFlowDetail, icon: "waveform.path.ecg", tint: .blue)
             MetricCard(title: "battery.capacity.maximum", value: capacityDescription(monitor.snapshot.maximumCapacity), detail: healthDetail, icon: "battery.75percent", tint: .green)
-            MetricCard(title: "battery.health.system", value: systemBatteryHealthDescription, detail: String(localized: "battery.health.system.source"), icon: "checkmark.shield.fill", tint: .mint)
-            MetricCard(title: "battery.capacity.design", value: capacityDescription(monitor.snapshot.designCapacity), detail: String(localized: "battery.capacity.design.detail"), icon: "ruler", tint: .indigo)
-            MetricCard(title: "battery.cycle_count", value: monitor.snapshot.cycleCount.map(String.init) ?? "—", detail: String(localized: "battery.cycle_count.detail"), icon: "repeat", tint: .orange)
+            MetricCard(title: "battery.health.system", value: systemBatteryHealthDescription, detail: String(localized: "battery.health.system.source", locale: AppLanguage.currentLocale), icon: "checkmark.shield.fill", tint: .mint)
+            MetricCard(title: "battery.capacity.design", value: capacityDescription(monitor.snapshot.designCapacity), detail: String(localized: "battery.capacity.design.detail", locale: AppLanguage.currentLocale), icon: "ruler", tint: .indigo)
+            MetricCard(title: "battery.cycle_count", value: monitor.snapshot.cycleCount.map(String.init) ?? "—", detail: String(localized: "battery.cycle_count.detail", locale: AppLanguage.currentLocale), icon: "repeat", tint: .orange)
             MetricCard(title: "battery.temperature", value: monitor.snapshot.temperature.map { String(format: "%.1f °C", $0) } ?? "—", detail: temperatureDetail, icon: "thermometer.medium", tint: .red)
         }
     }
@@ -87,10 +87,10 @@ struct OverviewTabView: View {
 
     private var timeDescription: String {
         guard let minutes = monitor.snapshot.timeRemaining else {
-            return String(localized: "battery.time.calculating")
+            return String(localized: "battery.time.calculating", locale: AppLanguage.currentLocale)
         }
         return String.localizedStringWithFormat(
-            String(localized: "battery.time.hours_minutes"),
+            String(localized: "battery.time.hours_minutes", locale: AppLanguage.currentLocale),
             minutes / 60,
             minutes % 60
         )
@@ -114,18 +114,18 @@ struct OverviewTabView: View {
     }
 
     private var currentFlowDetail: String {
-        guard let amperage = monitor.snapshot.amperage else { return String(localized: "common.no_data") }
+        guard let amperage = monitor.snapshot.amperage else { return String(localized: "common.no_data", locale: AppLanguage.currentLocale) }
         return amperage >= 0
-            ? String(localized: "battery.flow.charging")
-            : String(localized: "battery.flow.discharging")
+            ? String(localized: "battery.flow.charging", locale: AppLanguage.currentLocale)
+            : String(localized: "battery.flow.discharging", locale: AppLanguage.currentLocale)
     }
 
     private var healthDetail: String {
         guard let condition = monitor.snapshot.healthCondition else {
-            return String(localized: "battery.capacity.current_full")
+            return String(localized: "battery.capacity.current_full", locale: AppLanguage.currentLocale)
         }
         return String.localizedStringWithFormat(
-            String(localized: "battery.health.system_status"),
+            String(localized: "battery.health.system_status", locale: AppLanguage.currentLocale),
             condition
         )
     }
@@ -136,13 +136,13 @@ struct OverviewTabView: View {
 
     private var systemBatteryHealthDescription: String {
         monitor.snapshot.systemHealthPercent.map { "\($0)%" }
-            ?? String(localized: "common.loading")
+            ?? String(localized: "common.loading", locale: AppLanguage.currentLocale)
     }
 
     private var temperatureDetail: String {
-        guard let temperature = monitor.snapshot.temperature else { return String(localized: "common.no_data") }
+        guard let temperature = monitor.snapshot.temperature else { return String(localized: "common.no_data", locale: AppLanguage.currentLocale) }
         return temperature < 40
-            ? String(localized: "battery.temperature.normal")
-            : String(localized: "battery.temperature.high")
+            ? String(localized: "battery.temperature.normal", locale: AppLanguage.currentLocale)
+            : String(localized: "battery.temperature.high", locale: AppLanguage.currentLocale)
     }
 }

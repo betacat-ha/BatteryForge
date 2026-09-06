@@ -12,11 +12,12 @@ struct ContentView: View {
     @StateObject private var monitor: BatteryMonitor
     @StateObject private var cycle: CycleController
     @State private var selectedPage: SidebarPage? = .overview
-    @State private var lowerLimit = 25.0
-    @State private var upperLimit = 80.0
+    @AppStorage("cycle.lowerLimit") private var lowerLimit = 25.0
+    @AppStorage("cycle.upperLimit") private var upperLimit = 80.0
     @AppStorage("workload.enabled") private var workloadEnabled = true
     @AppStorage("workload.level") private var workloadLevelRaw = WorkloadLevel.balanced.rawValue
     @AppStorage("workload.gpuEnabled") private var gpuLoadEnabled = true
+    @AppStorage(AppLanguage.storageKey) private var appLanguageRawValue = AppLanguage.system.rawValue
 
     init(monitor: BatteryMonitor? = nil) {
         let batteryMonitor = monitor ?? BatteryMonitor()
@@ -35,6 +36,9 @@ struct ContentView: View {
                     .tag(SidebarPage.workload)
                 Label("sidebar.history", systemImage: "clock.arrow.circlepath")
                     .tag(SidebarPage.history)
+                Divider()
+                Label("sidebar.settings", systemImage: "gearshape")
+                    .tag(SidebarPage.settings)
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
         } detail: {
@@ -55,8 +59,14 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 900, minHeight: 680)
+        .environment(\.locale, appLanguage.locale)
+        .onAppear(perform: normalizeSavedSettings)
         .onChange(of: lowerLimit) { _, newValue in
             upperLimit = max(upperLimit, newValue + 10)
+        }
+        .onChange(of: appLanguageRawValue) { _, _ in
+            monitor.refresh()
+            cycle.refreshLocalization()
         }
     }
 
@@ -88,6 +98,22 @@ struct ContentView: View {
             )
         case .history:
             HistoryTabView(updatedAt: monitor.snapshot.lastUpdated)
+        case .settings:
+            SettingsTabView(languageRawValue: $appLanguageRawValue)
+        }
+    }
+
+    private var appLanguage: AppLanguage {
+        AppLanguage(rawValue: appLanguageRawValue) ?? .system
+    }
+
+    private func normalizeSavedSettings() {
+        if !lowerLimit.isFinite { lowerLimit = 25 }
+        if !upperLimit.isFinite { upperLimit = 80 }
+        lowerLimit = min(max(lowerLimit, 10), 70)
+        upperLimit = min(max(upperLimit, lowerLimit + 10), 100)
+        if WorkloadLevel(rawValue: workloadLevelRaw) == nil {
+            workloadLevelRaw = WorkloadLevel.balanced.rawValue
         }
     }
 
@@ -109,8 +135,8 @@ struct ContentView: View {
 
     private var workloadSummary: String {
         let format = effectiveGPULoadEnabled
-            ? String(localized: "workload.summary.cpu_gpu")
-            : String(localized: "workload.summary.cpu")
+            ? String(localized: "workload.summary.cpu_gpu", locale: AppLanguage.currentLocale)
+            : String(localized: "workload.summary.cpu", locale: AppLanguage.currentLocale)
         return String.localizedStringWithFormat(format, workloadLevel.title, stressWorkerCount)
     }
 }

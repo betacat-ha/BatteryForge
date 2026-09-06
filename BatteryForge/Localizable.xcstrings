@@ -1937,6 +1937,60 @@
         }
       }
     },
+    "settings.title": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Settings" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "设置" } }
+      }
+    },
+    "settings.subtitle": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Customize BatteryForge" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "自定义电池锻炉" } }
+      }
+    },
+    "settings.language.section": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Language" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "语言" } }
+      }
+    },
+    "settings.language.label": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "App Language" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "App 语言" } }
+      }
+    },
+    "settings.language.note": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Language changes take effect immediately and do not require a restart" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "语言更改会立即生效，无需重新启动" } }
+      }
+    },
+    "settings.language.system": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "System Default" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "跟随系统" } }
+      }
+    },
+    "settings.language.simplified_chinese": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "简体中文" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "简体中文" } }
+      }
+    },
+    "settings.language.english": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "English" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "English" } }
+      }
+    },
+    "sidebar.settings": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Settings" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "设置" } }
+      }
+    },
     "workload.title": {
       "localizations": {
         "en": {

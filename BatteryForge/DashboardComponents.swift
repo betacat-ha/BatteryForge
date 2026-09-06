@@ -3,7 +3,7 @@ import SwiftUI
 struct PageHeader: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey
-    let updatedAt: Date
+    var updatedAt: Date? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
@@ -14,14 +14,18 @@ struct PageHeader: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text(
-                String.localizedStringWithFormat(
-                    String(localized: "common.updated_at"),
-                    updatedAt.formatted(.dateTime.hour().minute().second())
+            if let updatedAt {
+                Text(
+                    String.localizedStringWithFormat(
+                        String(localized: "common.updated_at", locale: AppLanguage.currentLocale),
+                        updatedAt.formatted(
+                            .dateTime.hour().minute().second().locale(AppLanguage.currentLocale)
+                        )
+                    )
                 )
-            )
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

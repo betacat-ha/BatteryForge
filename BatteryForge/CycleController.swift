@@ -11,12 +11,12 @@ enum CyclePhase: Equatable {
 
     var title: String {
         switch self {
-        case .idle: String(localized: "cycle.phase.idle")
-        case .preparing: String(localized: "cycle.phase.preparing")
-        case .charging: String(localized: "cycle.phase.charging")
-        case .discharging: String(localized: "cycle.phase.discharging")
-        case .stopping: String(localized: "cycle.phase.stopping")
-        case .failed: String(localized: "cycle.phase.failed")
+        case .idle: String(localized: "cycle.phase.idle", locale: AppLanguage.currentLocale)
+        case .preparing: String(localized: "cycle.phase.preparing", locale: AppLanguage.currentLocale)
+        case .charging: String(localized: "cycle.phase.charging", locale: AppLanguage.currentLocale)
+        case .discharging: String(localized: "cycle.phase.discharging", locale: AppLanguage.currentLocale)
+        case .stopping: String(localized: "cycle.phase.stopping", locale: AppLanguage.currentLocale)
+        case .failed: String(localized: "cycle.phase.failed", locale: AppLanguage.currentLocale)
         }
     }
 
@@ -35,7 +35,7 @@ enum CyclePhase: Equatable {
 final class CycleController: ObservableObject {
     @Published private(set) var phase: CyclePhase = .idle
     @Published private(set) var completedCycles = 0
-    @Published private(set) var statusMessage = String(localized: "cycle.status.ready")
+    @Published private(set) var statusMessage = String(localized: "cycle.status.ready", locale: AppLanguage.currentLocale)
     @Published private(set) var stressRunning = false
 
     let helper = HelperManager()
@@ -59,19 +59,19 @@ final class CycleController: ObservableObject {
     func start(lower: Int, upper: Int, useStress: Bool, stressWorkers: Int, useGPU: Bool) {
         guard !isRunning else { return }
         guard lower >= 10, upper <= 100, upper - lower >= 10 else {
-            phase = .failed(String(localized: "cycle.error.threshold_gap"))
-            statusMessage = String(localized: "cycle.status.adjust_thresholds")
+            phase = .failed(String(localized: "cycle.error.threshold_gap", locale: AppLanguage.currentLocale))
+            statusMessage = String(localized: "cycle.status.adjust_thresholds", locale: AppLanguage.currentLocale)
             return
         }
         guard helper.state == .enabled else {
             helper.install()
-            phase = .failed(String(localized: "helper.error.approval_required"))
-            statusMessage = helper.message.isEmpty ? String(localized: "helper.status.approve_then_retry") : helper.message
+            phase = .failed(String(localized: "helper.error.approval_required", locale: AppLanguage.currentLocale))
+            statusMessage = helper.message.isEmpty ? String(localized: "helper.status.approve_then_retry", locale: AppLanguage.currentLocale) : helper.message
             return
         }
 
         phase = .preparing
-        statusMessage = String(localized: "cycle.status.handing_to_helper")
+        statusMessage = String(localized: "cycle.status.handing_to_helper", locale: AppLanguage.currentLocale)
         helper.startCycle(
             lower: lower,
             upper: upper,
@@ -92,17 +92,17 @@ final class CycleController: ObservableObject {
         guard isRunning || helper.isCycleRunning else {
             if case .failed = phase {
                 phase = .idle
-                statusMessage = String(localized: "cycle.status.ready")
+                statusMessage = String(localized: "cycle.status.ready", locale: AppLanguage.currentLocale)
             }
             return
         }
         phase = .stopping
-        statusMessage = String(localized: "cycle.status.restoring_power")
+        statusMessage = String(localized: "cycle.status.restoring_power", locale: AppLanguage.currentLocale)
         helper.stopCycle { [weak self] result in
             switch result {
             case .success:
                 self?.phase = .idle
-                self?.statusMessage = String(localized: "cycle.status.stopped_safely")
+                self?.statusMessage = String(localized: "cycle.status.stopped_safely", locale: AppLanguage.currentLocale)
                 self?.stressRunning = false
             case .failure(let error):
                 self?.phase = .failed(error.localizedDescription)
@@ -113,6 +113,13 @@ final class CycleController: ObservableObject {
 
     func installHelper() {
         helper.install()
+        synchronizeWithHelper()
+    }
+
+    func refreshLocalization() {
+        if phase == .idle {
+            statusMessage = String(localized: "cycle.status.ready", locale: AppLanguage.currentLocale)
+        }
         synchronizeWithHelper()
     }
 
