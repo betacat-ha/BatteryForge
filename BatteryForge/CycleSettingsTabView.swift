@@ -33,6 +33,9 @@ struct CycleSettingsTabView: View {
                 cycleStatus
                 Divider()
                 helperStatus
+                if helper.requiresUpdate {
+                    helperUpdateNotice
+                }
                 thresholdControls
                 workloadRow
                 Label("cycle.sleep_prevention.note", systemImage: "moon.zzz")
@@ -87,16 +90,48 @@ struct CycleSettingsTabView: View {
                 ProgressView().controlSize(.small)
             case .enabled:
                 HStack(spacing: 10) {
+                    if let versionDescription = helper.versionDescription {
+                        Text(versionDescription)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Text("helper.authorization.once")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button(helperUpdateTitle) {
-                        cycle.installHelper()
+                    if !helper.requiresUpdate {
+                        Button(helperUpdateTitle) {
+                            cycle.installHelper()
+                        }
+                            .controlSize(.small)
                     }
-                        .controlSize(.small)
                 }
             }
         }
+    }
+
+    private var helperUpdateNotice: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                .font(.title2)
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("helper.update.available")
+                    .font(.headline)
+                if let description = helper.updateDescription {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Button(helperUpdateTitle) {
+                cycle.installHelper()
+            }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+        }
+        .padding(10)
+        .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var thresholdControls: some View {
@@ -171,11 +206,12 @@ struct CycleSettingsTabView: View {
     }
 
     private var helperStateColor: Color {
-        helper.state == .enabled ? .green : .orange
+        helper.state == .enabled && !helper.requiresUpdate ? .green : .orange
     }
 
     private var helperStateIcon: String {
-        helper.state == .enabled ? "checkmark.circle.fill" : "exclamationmark.circle"
+        if helper.requiresUpdate { return "arrow.triangle.2.circlepath.circle.fill" }
+        return helper.state == .enabled ? "checkmark.circle.fill" : "exclamationmark.circle"
     }
 
     private var helperUpdateTitle: String {

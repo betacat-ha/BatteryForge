@@ -57,8 +57,10 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
 
     private let configurationURL = URL(fileURLWithPath: "/Library/Application Support/BatteryForge/config.json")
     private let forcedStopURL = URL(fileURLWithPath: "/Library/Application Support/BatteryForge/force-stop")
+    private let versionURL = URL(fileURLWithPath: "/Library/Application Support/BatteryForge/helper-version")
 
     func run() {
+        try? helperVersion.write(to: versionURL, atomically: true, encoding: .utf8)
         loadConfiguration()
         applyForcedStopIfRequested()
         restorePower()

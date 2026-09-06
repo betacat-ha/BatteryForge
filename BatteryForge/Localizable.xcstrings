@@ -1991,6 +1991,30 @@
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "设置" } }
       }
     },
+    "helper.version.current": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Version %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "版本 %@" } }
+      }
+    },
+    "helper.version.unknown": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Unknown" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "未知" } }
+      }
+    },
+    "helper.update.available": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Helper Update Required" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "需要更新后台服务" } }
+      }
+    },
+    "helper.update.description": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Installed: %@ · Included: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已安装：%@ · 内置：%@" } }
+      }
+    },
     "workload.title": {
       "localizations": {
         "en": {

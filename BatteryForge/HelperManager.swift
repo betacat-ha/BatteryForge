@@ -5,6 +5,8 @@ import Combine
 enum HelperConstants {
     nonisolated static let machServiceName = "com.betacat.batteryforge.helper"
     nonisolated static let plistName = "com.betacat.batteryforge.helper.plist"
+    nonisolated static let bundledVersion = "0.0.1"
+    nonisolated static let versionFilePath = "/Library/Application Support/BatteryForge/helper-version"
 }
 
 @objc(BatteryHelperProtocol)
@@ -24,6 +26,28 @@ protocol BatteryHelperProtocol {
 private struct HelperMessagePayload: Decodable {
     let key: String
     let arguments: [String]
+}
+
+private struct HelperSemanticVersion: Comparable {
+    let components: [Int]
+
+    init?(_ value: String) {
+        let components = value.split(separator: ".").compactMap { Int($0) }
+        guard components.count == value.split(separator: ".").count,
+              !components.isEmpty
+        else { return nil }
+        self.components = components
+    }
+
+    static func < (lhs: HelperSemanticVersion, rhs: HelperSemanticVersion) -> Bool {
+        let count = max(lhs.components.count, rhs.components.count)
+        for index in 0..<count {
+            let left = index < lhs.components.count ? lhs.components[index] : 0
+            let right = index < rhs.components.count ? rhs.components[index] : 0
+            if left != right { return left < right }
+        }
+        return false
+    }
 }
 
 private func localizedHelperMessage(_ rawValue: String) -> String {
@@ -111,19 +135,55 @@ final class HelperManager: ObservableObject {
     @Published private(set) var completedCycles = 0
     @Published private(set) var highLoadRunning = false
     @Published private(set) var message = ""
+    @Published private(set) var bundledVersion: String? = HelperConstants.bundledVersion
+    @Published private(set) var installedVersion: String?
 
     private let previousService = SMAppService.daemon(plistName: "cn.com.betacat.battery.helper.plist")
     private var connection: NSXPCConnection?
     private let installedHelperPath = "/Library/PrivilegedHelperTools/com.betacat.batteryforge.helper"
 
+    var requiresUpdate: Bool {
+        guard state == .enabled, let bundledVersion else { return false }
+        guard let installedVersion,
+              let installed = HelperSemanticVersion(installedVersion),
+              let bundled = HelperSemanticVersion(bundledVersion)
+        else { return true }
+        return installed < bundled
+    }
+
+    var versionDescription: String? {
+        guard let installedVersion else { return nil }
+        return String.localizedStringWithFormat(
+            String(localized: "helper.version.current", locale: AppLanguage.currentLocale),
+            installedVersion
+        )
+    }
+
+    var updateDescription: String? {
+        guard requiresUpdate, let bundledVersion else { return nil }
+        let unknown = String(localized: "helper.version.unknown", locale: AppLanguage.currentLocale)
+        return String.localizedStringWithFormat(
+            String(localized: "helper.update.description", locale: AppLanguage.currentLocale),
+            installedVersion ?? unknown,
+            bundledVersion
+        )
+    }
+
     init() {
+        refreshHelperVersions()
         refreshRegistrationState()
         if state == .enabled { refreshStatus() }
     }
 
     func refreshRegistrationState() {
         if state == .installing { return }
-        state = FileManager.default.fileExists(atPath: installedHelperPath) ? .enabled : .notRegistered
+        let isInstalled = FileManager.default.fileExists(atPath: installedHelperPath)
+        state = isInstalled ? .enabled : .notRegistered
+        if isInstalled {
+            refreshHelperVersions()
+        } else {
+            installedVersion = nil
+        }
     }
 
     func install() {
@@ -152,6 +212,7 @@ final class HelperManager: ObservableObject {
                     self.message = String(localized: "helper.status.installed", locale: AppLanguage.currentLocale)
                     self.connection?.invalidate()
                     self.connection = nil
+                    self.refreshHelperVersions()
                     self.refreshStatus()
                 }
             } catch {
@@ -265,6 +326,17 @@ final class HelperManager: ObservableObject {
         connection = newConnection
         return newConnection
     }
+
+    private func refreshHelperVersions() {
+        bundledVersion = HelperConstants.bundledVersion
+        guard FileManager.default.fileExists(atPath: installedHelperPath) else {
+            installedVersion = nil
+            return
+        }
+        let rawValue = try? String(contentsOfFile: HelperConstants.versionFilePath, encoding: .utf8)
+        let value = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines)
+        installedVersion = value?.isEmpty == false ? value : nil
+    }
 }
 
 enum HelperManagerError: LocalizedError {
@@ -285,6 +357,7 @@ private enum HelperInstaller {
     nonisolated static func install(helperURL: URL, plistURL: URL) throws {
         let helperDestination = "/Library/PrivilegedHelperTools/com.betacat.batteryforge.helper"
         let plistDestination = "/Library/LaunchDaemons/com.betacat.batteryforge.helper.plist"
+        let versionDestination = HelperConstants.versionFilePath
         let command = [
             "/bin/mkdir -p '/Library/Application Support/BatteryForge'",
             "/usr/bin/touch '/Library/Application Support/BatteryForge/force-stop'",
@@ -299,6 +372,9 @@ private enum HelperInstaller {
             "/bin/cp \(shellQuote(plistURL.path)) \(shellQuote(plistDestination))",
             "/usr/sbin/chown root:wheel \(shellQuote(plistDestination))",
             "/bin/chmod 644 \(shellQuote(plistDestination))",
+            "/bin/echo \(shellQuote(HelperConstants.bundledVersion)) > \(shellQuote(versionDestination))",
+            "/usr/sbin/chown root:wheel \(shellQuote(versionDestination))",
+            "/bin/chmod 644 \(shellQuote(versionDestination))",
             "/bin/launchctl bootstrap system \(shellQuote(plistDestination))"
         ].joined(separator: "; ")
         let appleScript = "do shell script \"\(appleScriptQuote(command))\" with administrator privileges"
