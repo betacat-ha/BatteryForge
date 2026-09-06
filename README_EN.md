@@ -20,10 +20,8 @@ BatteryForge is a macOS battery cycling and stress-testing utility built with Sw
 
 ## Requirements
 
-- macOS 26.5 or later, matching the current project deployment target.
-- Apple Silicon or Intel Mac; charge control depends on compatible SMC keys being available on the model.
-- An Xcode version compatible with the current project settings.
-- Administrator authorization when installing or updating the helper.
+- macOS 14.0 or later; currently verified only on macOS 26.6.1.
+- Apple Silicon or Intel Mac (untested); charge control depends on compatible SMC keys being available on the model.
 
 ## Building
 
@@ -42,25 +40,6 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO \
   build
 ```
-
-An unsigned build is useful for compilation checks. Installing the privileged helper for normal use still requires appropriate signing and administrator authorization.
-
-## Usage
-
-1. Install or update the Helper Service under Settings.
-2. Configure the lower threshold for starting charge and the upper threshold for stopping charge.
-3. Enable the CPU/GPU workload and select an intensity if desired.
-4. Return to Overview and select Start Cycle.
-5. Select Stop Cycle to stop the workload and attempt to restore normal AC power and sleep behavior.
-
-Cycle and workload settings are locked while a cycle is active. Stop the current cycle before changing them.
-
-## Project layout
-
-- `BatteryForge/`: SwiftUI app, battery monitoring, settings, and helper management.
-- `BatteryForgeHelper/`: root LaunchDaemon, SMC control, CPU/GPU workload, and sleep management.
-- `BatteryForge.xcodeproj/`: Xcode project and shared schemes.
-- `THIRD_PARTY_NOTICES.md`: third-party attribution and license notices.
 
 ## Safety and privacy
 

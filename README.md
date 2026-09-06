@@ -20,10 +20,8 @@
 
 ## 系统要求
 
-- macOS 14.0 或更高版本。
-- Apple Silicon 或 Intel Mac；充放电控制取决于机型是否提供兼容的 SMC 键。
-- 支持当前项目配置的 Xcode 版本。
-- 安装或更新 helper 时需要管理员授权。
+- macOS 14.0 或更高版本，仅在macOS 26.6.1验证。
+- Apple Silicon 或 Intel Mac（未验证）；充放电控制取决于机型是否提供兼容的 SMC 键。
 
 ## 构建
 
