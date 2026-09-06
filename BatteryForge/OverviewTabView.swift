@@ -2,6 +2,13 @@ import SwiftUI
 
 struct OverviewTabView: View {
     @ObservedObject var monitor: BatteryMonitor
+    @ObservedObject var cycle: CycleController
+    let lowerLimit: Double
+    let upperLimit: Double
+    let workloadEnabled: Bool
+    let workloadSummary: String
+    let stressWorkers: Int
+    let gpuLoadEnabled: Bool
 
     var body: some View {
         VStack(spacing: 20) {
@@ -12,10 +19,87 @@ struct OverviewTabView: View {
             )
             if monitor.hasBattery {
                 batteryHero
+                cycleControlCard
                 metricsGrid
             } else {
                 NoBatteryView()
             }
+        }
+    }
+
+    private var cycleControlCard: some View {
+        GroupBox("cycle.group.title") {
+            VStack(spacing: 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: cycle.phase.symbol)
+                        .font(.title2)
+                        .foregroundStyle(cyclePhaseColor)
+                        .symbolEffect(.pulse, isActive: cycle.isRunning)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack {
+                            Text(cycle.phase.title).font(.headline)
+                            if cycle.completedCycles > 0 {
+                                Text(
+                                    String.localizedStringWithFormat(
+                                        String(localized: "cycle.completed_count", locale: AppLanguage.currentLocale),
+                                        cycle.completedCycles
+                                    )
+                                )
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            }
+                        }
+                        Text(cycle.statusMessage)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+
+                Divider()
+
+                HStack(spacing: 24) {
+                    LabeledContent("cycle.threshold.start_charging") {
+                        Text(verbatim: "\(Int(lowerLimit))%")
+                            .monospacedDigit()
+                    }
+                    LabeledContent("cycle.threshold.stop_charging") {
+                        Text(verbatim: "\(Int(upperLimit))%")
+                            .monospacedDigit()
+                    }
+                    LabeledContent("workload.title") {
+                        Text(workloadEnabled ? workloadSummary : String(localized: "common.disabled", locale: AppLanguage.currentLocale))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Divider()
+
+                HStack {
+                    Label("cycle.background_execution.note", systemImage: "checkmark.shield")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if cycle.isRunning {
+                        Button("cycle.action.stop", role: .destructive) {
+                            cycle.stop()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("cycle.action.start") {
+                            cycle.start(
+                                lower: Int(lowerLimit),
+                                upper: Int(upperLimit),
+                                useStress: workloadEnabled,
+                                stressWorkers: stressWorkers,
+                                useGPU: gpuLoadEnabled
+                            )
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+            }
+            .padding(8)
         }
     }
 
@@ -70,6 +154,15 @@ struct OverviewTabView: View {
             MetricCard(title: "battery.capacity.design", value: capacityDescription(monitor.snapshot.designCapacity), detail: String(localized: "battery.capacity.design.detail", locale: AppLanguage.currentLocale), icon: "ruler", tint: .indigo)
             MetricCard(title: "battery.cycle_count", value: monitor.snapshot.cycleCount.map(String.init) ?? "—", detail: String(localized: "battery.cycle_count.detail", locale: AppLanguage.currentLocale), icon: "repeat", tint: .orange)
             MetricCard(title: "battery.temperature", value: monitor.snapshot.temperature.map { String(format: "%.1f °C", $0) } ?? "—", detail: temperatureDetail, icon: "thermometer.medium", tint: .red)
+        }
+    }
+
+    private var cyclePhaseColor: Color {
+        switch cycle.phase {
+        case .idle: .secondary
+        case .preparing, .stopping: .orange
+        case .charging: .green
+        case .discharging, .failed: .red
         }
     }
 

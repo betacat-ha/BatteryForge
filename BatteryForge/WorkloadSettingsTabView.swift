@@ -6,17 +6,9 @@ struct WorkloadSettingsTabView: View {
     @Binding var workloadEnabled: Bool
     @Binding var workloadLevelRaw: Int
     @Binding var gpuLoadEnabled: Bool
-    let updatedAt: Date
 
     var body: some View {
-        VStack(spacing: 20) {
-            PageHeader(
-                title: "workload.title",
-                subtitle: "workload.subtitle",
-                updatedAt: updatedAt
-            )
-            workloadCard
-        }
+        workloadCard
     }
 
     private var workloadCard: some View {

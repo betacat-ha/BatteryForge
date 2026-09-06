@@ -2,8 +2,6 @@ import Foundation
 
 enum SidebarPage: String, Hashable {
     case overview
-    case cycle
-    case workload
     case history
     case settings
 }

@@ -30,10 +30,6 @@ struct ContentView: View {
             List(selection: $selectedPage) {
                 Label("sidebar.overview", systemImage: "gauge.with.dots.needle.50percent")
                     .tag(SidebarPage.overview)
-                Label("sidebar.cycle", systemImage: "arrow.triangle.2.circlepath")
-                    .tag(SidebarPage.cycle)
-                Label("sidebar.workload", systemImage: "cpu")
-                    .tag(SidebarPage.workload)
                 Label("sidebar.history", systemImage: "clock.arrow.circlepath")
                     .tag(SidebarPage.history)
                 Divider()
@@ -74,32 +70,29 @@ struct ContentView: View {
     private var selectedTab: some View {
         switch selectedPage ?? .overview {
         case .overview:
-            OverviewTabView(monitor: monitor)
-        case .cycle:
-            CycleSettingsTabView(
+            OverviewTabView(
                 monitor: monitor,
                 cycle: cycle,
-                helper: cycle.helper,
-                lowerLimit: $lowerLimit,
-                upperLimit: $upperLimit,
+                lowerLimit: lowerLimit,
+                upperLimit: upperLimit,
                 workloadEnabled: workloadEnabled,
                 workloadSummary: workloadSummary,
                 stressWorkers: stressWorkerCount,
-                gpuLoadEnabled: effectiveGPULoadEnabled,
-                openWorkloadSettings: { selectedPage = .workload }
-            )
-        case .workload:
-            WorkloadSettingsTabView(
-                cycle: cycle,
-                workloadEnabled: $workloadEnabled,
-                workloadLevelRaw: $workloadLevelRaw,
-                gpuLoadEnabled: $gpuLoadEnabled,
-                updatedAt: monitor.snapshot.lastUpdated
+                gpuLoadEnabled: effectiveGPULoadEnabled
             )
         case .history:
             HistoryTabView(updatedAt: monitor.snapshot.lastUpdated)
         case .settings:
-            SettingsTabView(languageRawValue: $appLanguageRawValue)
+            SettingsTabView(
+                cycle: cycle,
+                helper: cycle.helper,
+                lowerLimit: $lowerLimit,
+                upperLimit: $upperLimit,
+                workloadEnabled: $workloadEnabled,
+                workloadLevelRaw: $workloadLevelRaw,
+                gpuLoadEnabled: $gpuLoadEnabled,
+                languageRawValue: $appLanguageRawValue
+            )
         }
     }
 
