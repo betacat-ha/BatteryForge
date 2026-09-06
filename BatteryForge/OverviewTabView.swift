@@ -6,7 +6,6 @@ struct OverviewTabView: View {
     let lowerLimit: Double
     let upperLimit: Double
     let workloadEnabled: Bool
-    let workloadSummary: String
     let stressWorkers: Int
     let gpuLoadEnabled: Bool
 
@@ -29,74 +28,46 @@ struct OverviewTabView: View {
 
     private var cycleControlCard: some View {
         GroupBox("cycle.group.title") {
-            VStack(spacing: 14) {
-                HStack(spacing: 12) {
-                    Image(systemName: cycle.phase.symbol)
-                        .font(.title2)
-                        .foregroundStyle(cyclePhaseColor)
-                        .symbolEffect(.pulse, isActive: cycle.isRunning)
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack {
-                            Text(cycle.phase.title).font(.headline)
-                            if cycle.completedCycles > 0 {
-                                Text(
-                                    String.localizedStringWithFormat(
-                                        String(localized: "cycle.completed_count", locale: AppLanguage.currentLocale),
-                                        cycle.completedCycles
-                                    )
+            HStack(spacing: 12) {
+                Image(systemName: cycle.phase.symbol)
+                    .font(.title2)
+                    .foregroundStyle(cyclePhaseColor)
+                    .symbolEffect(.pulse, isActive: cycle.isRunning)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(cycle.phase.title).font(.headline)
+                        if cycle.completedCycles > 0 {
+                            Text(
+                                String.localizedStringWithFormat(
+                                    AppLanguage.localized("cycle.completed_count"),
+                                    cycle.completedCycles
                                 )
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            }
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         }
-                        Text(cycle.statusMessage)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
                     }
-                    Spacer()
-                }
-
-                Divider()
-
-                HStack(spacing: 24) {
-                    LabeledContent("cycle.threshold.start_charging") {
-                        Text(verbatim: "\(Int(lowerLimit))%")
-                            .monospacedDigit()
-                    }
-                    LabeledContent("cycle.threshold.stop_charging") {
-                        Text(verbatim: "\(Int(upperLimit))%")
-                            .monospacedDigit()
-                    }
-                    LabeledContent("workload.title") {
-                        Text(workloadEnabled ? workloadSummary : String(localized: "common.disabled", locale: AppLanguage.currentLocale))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Divider()
-
-                HStack {
-                    Label("cycle.background_execution.note", systemImage: "checkmark.shield")
+                    Text(cycle.statusMessage)
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    Spacer()
-                    if cycle.isRunning {
-                        Button("cycle.action.stop", role: .destructive) {
-                            cycle.stop()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    } else {
-                        Button("cycle.action.start") {
-                            cycle.start(
-                                lower: Int(lowerLimit),
-                                upper: Int(upperLimit),
-                                useStress: workloadEnabled,
-                                stressWorkers: stressWorkers,
-                                useGPU: gpuLoadEnabled
-                            )
-                        }
-                        .buttonStyle(.borderedProminent)
+                }
+                Spacer()
+                if cycle.isRunning {
+                    Button("cycle.action.stop", role: .destructive) {
+                        cycle.stop()
                     }
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    Button("cycle.action.start") {
+                        cycle.start(
+                            lower: Int(lowerLimit),
+                            upper: Int(upperLimit),
+                            useStress: workloadEnabled,
+                            stressWorkers: stressWorkers,
+                            useGPU: gpuLoadEnabled
+                        )
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
             }
             .padding(8)
@@ -147,12 +118,12 @@ struct OverviewTabView: View {
 
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 14)], spacing: 14) {
-            MetricCard(title: "battery.voltage", value: millivoltDescription, detail: String(localized: "battery.voltage.detail", locale: AppLanguage.currentLocale), icon: "bolt.fill", tint: .yellow)
+            MetricCard(title: "battery.voltage", value: millivoltDescription, detail: AppLanguage.localized("battery.voltage.detail"), icon: "bolt.fill", tint: .yellow)
             MetricCard(title: "battery.current", value: currentDescription, detail: currentFlowDetail, icon: "waveform.path.ecg", tint: .blue)
-            MetricCard(title: "battery.capacity.maximum", value: capacityDescription(monitor.snapshot.maximumCapacity), detail: healthDetail, icon: "battery.75percent", tint: .green)
-            MetricCard(title: "battery.health.system", value: systemBatteryHealthDescription, detail: String(localized: "battery.health.system.source", locale: AppLanguage.currentLocale), icon: "checkmark.shield.fill", tint: .mint)
-            MetricCard(title: "battery.capacity.design", value: capacityDescription(monitor.snapshot.designCapacity), detail: String(localized: "battery.capacity.design.detail", locale: AppLanguage.currentLocale), icon: "ruler", tint: .indigo)
-            MetricCard(title: "battery.cycle_count", value: monitor.snapshot.cycleCount.map(String.init) ?? "—", detail: String(localized: "battery.cycle_count.detail", locale: AppLanguage.currentLocale), icon: "repeat", tint: .orange)
+            MetricCard(title: "battery.capacity.maximum", value: capacityDescription(monitor.snapshot.maximumCapacity), detail: AppLanguage.localized("battery.capacity.current_full"), icon: "battery.75percent", tint: .green)
+            MetricCard(title: "battery.capacity.design", value: capacityDescription(monitor.snapshot.designCapacity), detail: AppLanguage.localized("battery.capacity.design.detail"), icon: "ruler", tint: .indigo)
+            MetricCard(title: "battery.health.system", value: systemBatteryHealthDescription, detail: healthDetail, icon: "checkmark.shield.fill", tint: .mint)
+            MetricCard(title: "battery.cycle_count", value: monitor.snapshot.cycleCount.map(String.init) ?? "—", detail: AppLanguage.localized("battery.cycle_count.detail"), icon: "repeat", tint: .orange)
             MetricCard(title: "battery.temperature", value: monitor.snapshot.temperature.map { String(format: "%.1f °C", $0) } ?? "—", detail: temperatureDetail, icon: "thermometer.medium", tint: .red)
         }
     }
@@ -180,10 +151,10 @@ struct OverviewTabView: View {
 
     private var timeDescription: String {
         guard let minutes = monitor.snapshot.timeRemaining else {
-            return String(localized: "battery.time.calculating", locale: AppLanguage.currentLocale)
+            return AppLanguage.localized("battery.time.calculating")
         }
         return String.localizedStringWithFormat(
-            String(localized: "battery.time.hours_minutes", locale: AppLanguage.currentLocale),
+            AppLanguage.localized("battery.time.hours_minutes"),
             minutes / 60,
             minutes % 60
         )
@@ -207,18 +178,18 @@ struct OverviewTabView: View {
     }
 
     private var currentFlowDetail: String {
-        guard let amperage = monitor.snapshot.amperage else { return String(localized: "common.no_data", locale: AppLanguage.currentLocale) }
+        guard let amperage = monitor.snapshot.amperage else { return AppLanguage.localized("common.no_data") }
         return amperage >= 0
-            ? String(localized: "battery.flow.charging", locale: AppLanguage.currentLocale)
-            : String(localized: "battery.flow.discharging", locale: AppLanguage.currentLocale)
+            ? AppLanguage.localized("battery.flow.charging")
+            : AppLanguage.localized("battery.flow.discharging")
     }
 
     private var healthDetail: String {
         guard let condition = monitor.snapshot.healthCondition else {
-            return String(localized: "battery.capacity.current_full", locale: AppLanguage.currentLocale)
+            return AppLanguage.localized("battery.health.system.source")
         }
         return String.localizedStringWithFormat(
-            String(localized: "battery.health.system_status", locale: AppLanguage.currentLocale),
+            AppLanguage.localized("battery.health.system_status"),
             condition
         )
     }
@@ -229,13 +200,13 @@ struct OverviewTabView: View {
 
     private var systemBatteryHealthDescription: String {
         monitor.snapshot.systemHealthPercent.map { "\($0)%" }
-            ?? String(localized: "common.loading", locale: AppLanguage.currentLocale)
+            ?? AppLanguage.localized("common.loading")
     }
 
     private var temperatureDetail: String {
-        guard let temperature = monitor.snapshot.temperature else { return String(localized: "common.no_data", locale: AppLanguage.currentLocale) }
+        guard let temperature = monitor.snapshot.temperature else { return AppLanguage.localized("common.no_data") }
         return temperature < 40
-            ? String(localized: "battery.temperature.normal", locale: AppLanguage.currentLocale)
-            : String(localized: "battery.temperature.high", locale: AppLanguage.currentLocale)
+            ? AppLanguage.localized("battery.temperature.normal")
+            : AppLanguage.localized("battery.temperature.high")
     }
 }

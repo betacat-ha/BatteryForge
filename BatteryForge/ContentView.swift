@@ -76,7 +76,6 @@ struct ContentView: View {
                 lowerLimit: lowerLimit,
                 upperLimit: upperLimit,
                 workloadEnabled: workloadEnabled,
-                workloadSummary: workloadSummary,
                 stressWorkers: stressWorkerCount,
                 gpuLoadEnabled: effectiveGPULoadEnabled
             )
@@ -126,12 +125,6 @@ struct ContentView: View {
         gpuLoadEnabled && MTLCreateSystemDefaultDevice() != nil
     }
 
-    private var workloadSummary: String {
-        let format = effectiveGPULoadEnabled
-            ? String(localized: "workload.summary.cpu_gpu", locale: AppLanguage.currentLocale)
-            : String(localized: "workload.summary.cpu", locale: AppLanguage.currentLocale)
-        return String.localizedStringWithFormat(format, workloadLevel.title, stressWorkerCount)
-    }
 }
 
 struct ContentView_Previews: PreviewProvider {

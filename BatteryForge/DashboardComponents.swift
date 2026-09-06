@@ -17,7 +17,7 @@ struct PageHeader: View {
             if let updatedAt {
                 Text(
                     String.localizedStringWithFormat(
-                        String(localized: "common.updated_at", locale: AppLanguage.currentLocale),
+                        AppLanguage.localized("common.updated_at"),
                         updatedAt.formatted(
                             .dateTime.hour().minute().second().locale(AppLanguage.currentLocale)
                         )

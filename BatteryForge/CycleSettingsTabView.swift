@@ -117,13 +117,13 @@ struct CycleSettingsTabView: View {
 
     private var helperUpdateTitle: String {
         cycle.isRunning
-            ? String(localized: "helper.action.reinstall_and_stop", locale: AppLanguage.currentLocale)
-            : String(localized: "helper.action.update", locale: AppLanguage.currentLocale)
+            ? AppLanguage.localized("helper.action.reinstall_and_stop")
+            : AppLanguage.localized("helper.action.update")
     }
 
     private var helperReinstallTitle: String {
         cycle.isRunning
-            ? String(localized: "helper.action.reinstall_and_stop", locale: AppLanguage.currentLocale)
-            : String(localized: "helper.action.reinstall", locale: AppLanguage.currentLocale)
+            ? AppLanguage.localized("helper.action.reinstall_and_stop")
+            : AppLanguage.localized("helper.action.reinstall")
     }
 }

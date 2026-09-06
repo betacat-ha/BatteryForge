@@ -15,17 +15,17 @@ enum WorkloadLevel: Int, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .gentle: String(localized: "workload.level.gentle", locale: AppLanguage.currentLocale)
-        case .balanced: String(localized: "workload.level.balanced", locale: AppLanguage.currentLocale)
-        case .maximum: String(localized: "workload.level.maximum", locale: AppLanguage.currentLocale)
+        case .gentle: AppLanguage.localized("workload.level.gentle")
+        case .balanced: AppLanguage.localized("workload.level.balanced")
+        case .maximum: AppLanguage.localized("workload.level.maximum")
         }
     }
 
     var detail: String {
         switch self {
-        case .gentle: String(localized: "workload.level.gentle.detail", locale: AppLanguage.currentLocale)
-        case .balanced: String(localized: "workload.level.balanced.detail", locale: AppLanguage.currentLocale)
-        case .maximum: String(localized: "workload.level.maximum.detail", locale: AppLanguage.currentLocale)
+        case .gentle: AppLanguage.localized("workload.level.gentle.detail")
+        case .balanced: AppLanguage.localized("workload.level.balanced.detail")
+        case .maximum: AppLanguage.localized("workload.level.maximum.detail")
         }
     }
 

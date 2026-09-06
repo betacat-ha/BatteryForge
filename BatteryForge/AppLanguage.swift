@@ -27,7 +27,23 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     }
 
     nonisolated static var currentLocale: Locale {
+        current.locale
+    }
+
+    nonisolated static func localized(_ key: String.LocalizationValue) -> String {
+        String(localized: key, bundle: currentBundle, locale: currentLocale)
+    }
+
+    nonisolated private static var current: AppLanguage {
         let storedValue = UserDefaults.standard.string(forKey: storageKey) ?? system.rawValue
-        return AppLanguage(rawValue: storedValue)?.locale ?? .autoupdatingCurrent
+        return AppLanguage(rawValue: storedValue) ?? .system
+    }
+
+    nonisolated private static var currentBundle: Bundle {
+        guard current != .system,
+              let path = Bundle.main.path(forResource: current.rawValue, ofType: "lproj"),
+              let bundle = Bundle(path: path)
+        else { return .main }
+        return bundle
     }
 }
