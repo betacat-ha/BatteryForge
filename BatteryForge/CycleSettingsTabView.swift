@@ -15,8 +15,8 @@ struct CycleSettingsTabView: View {
     var body: some View {
         VStack(spacing: 20) {
             PageHeader(
-                title: "循环设置",
-                subtitle: "配置自动充电与放电阈值",
+                title: "cycle.title",
+                subtitle: "cycle.subtitle",
                 updatedAt: monitor.snapshot.lastUpdated
             )
             if monitor.hasBattery {
@@ -28,14 +28,14 @@ struct CycleSettingsTabView: View {
     }
 
     private var automationCard: some View {
-        GroupBox("充放电循环") {
+        GroupBox("cycle.group.title") {
             VStack(spacing: 14) {
                 cycleStatus
                 Divider()
                 helperStatus
                 thresholdControls
                 workloadRow
-                Label("放电阶段会阻止系统睡眠（包括合盖睡眠），恢复充电或停止循环后自动还原", systemImage: "moon.zzz")
+                Label("cycle.sleep_prevention.note", systemImage: "moon.zzz")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -56,7 +56,12 @@ struct CycleSettingsTabView: View {
                 HStack {
                     Text(cycle.phase.title).font(.headline)
                     if cycle.completedCycles > 0 {
-                        Text("已完成 \(cycle.completedCycles) 次")
+                        Text(
+                            String.localizedStringWithFormat(
+                                String(localized: "cycle.completed_count"),
+                                cycle.completedCycles
+                            )
+                        )
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -77,15 +82,15 @@ struct CycleSettingsTabView: View {
             Spacer()
             switch helper.state {
             case .notRegistered, .unavailable:
-                Button("安装后台服务") { cycle.installHelper() }
+                Button("helper.action.install") { cycle.installHelper() }
             case .installing:
                 ProgressView().controlSize(.small)
             case .enabled:
                 HStack(spacing: 10) {
-                    Text("运行时无需再次授权")
+                    Text("helper.authorization.once")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button(cycle.isRunning ? "重新安装并停止" : "更新后台服务") {
+                    Button(helperUpdateTitle) {
                         cycle.installHelper()
                     }
                         .controlSize(.small)
@@ -96,22 +101,22 @@ struct CycleSettingsTabView: View {
 
     private var thresholdControls: some View {
         Group {
-            LabeledContent("开始充电") {
+            LabeledContent("cycle.threshold.start_charging") {
                 HStack {
                     Slider(value: $lowerLimit, in: 10...70, step: 5)
                         .frame(width: 180)
                         .disabled(cycle.isRunning)
-                    Text("\(Int(lowerLimit))%")
+                    Text(verbatim: "\(Int(lowerLimit))%")
                         .monospacedDigit()
                         .frame(width: 38, alignment: .trailing)
                 }
             }
-            LabeledContent("停止充电并切换电池") {
+            LabeledContent("cycle.threshold.stop_charging") {
                 HStack {
                     Slider(value: $upperLimit, in: max(lowerLimit + 10, 40)...100, step: 5)
                         .frame(width: 180)
                         .disabled(cycle.isRunning)
-                    Text("\(Int(upperLimit))%")
+                    Text(verbatim: "\(Int(upperLimit))%")
                         .monospacedDigit()
                         .frame(width: 38, alignment: .trailing)
                 }
@@ -120,11 +125,11 @@ struct CycleSettingsTabView: View {
     }
 
     private var workloadRow: some View {
-        LabeledContent("高负载任务") {
+        LabeledContent("workload.title") {
             HStack(spacing: 8) {
-                Text(workloadEnabled ? workloadSummary : "已关闭")
+                Text(workloadEnabled ? workloadSummary : String(localized: "common.disabled"))
                     .foregroundStyle(.secondary)
-                Button("设置", action: openWorkloadSettings)
+                Button("common.settings", action: openWorkloadSettings)
                     .controlSize(.small)
             }
         }
@@ -132,17 +137,17 @@ struct CycleSettingsTabView: View {
 
     private var actionRow: some View {
         HStack {
-            Label("循环由后台服务执行，关闭主窗口或退出应用后仍会继续", systemImage: "checkmark.shield")
+            Label("cycle.background_execution.note", systemImage: "checkmark.shield")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Spacer()
             if cycle.isRunning {
-                Button("停止循环", role: .destructive) {
+                Button("cycle.action.stop", role: .destructive) {
                     cycle.stop()
                 }
                 .buttonStyle(.borderedProminent)
             } else {
-                Button("开始循环") {
+                Button("cycle.action.start") {
                     cycle.start(
                         lower: Int(lowerLimit),
                         upper: Int(upperLimit),
@@ -171,5 +176,11 @@ struct CycleSettingsTabView: View {
 
     private var helperStateIcon: String {
         helper.state == .enabled ? "checkmark.circle.fill" : "exclamationmark.circle"
+    }
+
+    private var helperUpdateTitle: String {
+        cycle.isRunning
+            ? String(localized: "helper.action.reinstall_and_stop")
+            : String(localized: "helper.action.update")
     }
 }

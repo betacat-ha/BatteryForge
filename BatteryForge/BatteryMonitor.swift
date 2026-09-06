@@ -32,10 +32,10 @@ struct BatterySnapshot: Equatable {
     }
 
     var stateDescription: String {
-        if isFullyCharged { return "已充满" }
-        if isCharging { return "正在充电" }
-        if isConnectedToAC { return "已接通电源" }
-        return "使用电池"
+        if isFullyCharged { return String(localized: "battery.state.fully_charged") }
+        if isCharging { return String(localized: "battery.state.charging") }
+        if isConnectedToAC { return String(localized: "battery.state.ac_connected") }
+        return String(localized: "battery.state.on_battery")
     }
 
     static let preview = BatterySnapshot(
@@ -173,7 +173,9 @@ final class BatteryMonitor: ObservableObject {
         } else if let condition = properties["BatteryHealthCondition"] as? String {
             snapshot.healthCondition = localizedHealth(condition)
         } else if let healthPercent = snapshot.healthPercent {
-            snapshot.healthCondition = healthPercent >= 80 ? "良好" : "建议维修"
+            snapshot.healthCondition = healthPercent >= 80
+                ? String(localized: "battery.health.good")
+                : String(localized: "battery.health.service_recommended")
         }
         return true
     }
@@ -200,9 +202,9 @@ final class BatteryMonitor: ObservableObject {
 
     private func localizedHealth(_ value: String) -> String {
         switch value.lowercased() {
-        case "good": "良好"
-        case "fair": "正常"
-        case "poor", "check battery", "service battery": "建议维修"
+        case "good": String(localized: "battery.health.good")
+        case "fair": String(localized: "battery.health.normal")
+        case "poor", "check battery", "service battery": String(localized: "battery.health.service_recommended")
         default: value
         }
     }

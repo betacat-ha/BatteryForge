@@ -27,13 +27,13 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $selectedPage) {
-                Label("概览", systemImage: "gauge.with.dots.needle.50percent")
+                Label("sidebar.overview", systemImage: "gauge.with.dots.needle.50percent")
                     .tag(SidebarPage.overview)
-                Label("循环设置", systemImage: "arrow.triangle.2.circlepath")
+                Label("sidebar.cycle", systemImage: "arrow.triangle.2.circlepath")
                     .tag(SidebarPage.cycle)
-                Label("高负载任务", systemImage: "cpu")
+                Label("sidebar.workload", systemImage: "cpu")
                     .tag(SidebarPage.workload)
-                Label("运行记录", systemImage: "clock.arrow.circlepath")
+                Label("sidebar.history", systemImage: "clock.arrow.circlepath")
                     .tag(SidebarPage.history)
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
@@ -48,9 +48,9 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem {
                     Button(action: monitor.refresh) {
-                        Label("刷新", systemImage: "arrow.clockwise")
+                        Label("common.refresh", systemImage: "arrow.clockwise")
                     }
-                    .help("刷新电池数据")
+                    .help("common.refresh_battery")
                 }
             }
         }
@@ -108,7 +108,10 @@ struct ContentView: View {
     }
 
     private var workloadSummary: String {
-        "\(workloadLevel.title) · \(stressWorkerCount) 个 CPU 线程\(effectiveGPULoadEnabled ? " + GPU" : "")"
+        let format = effectiveGPULoadEnabled
+            ? String(localized: "workload.summary.cpu_gpu")
+            : String(localized: "workload.summary.cpu")
+        return String.localizedStringWithFormat(format, workloadLevel.title, stressWorkerCount)
     }
 }
 

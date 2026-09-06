@@ -11,8 +11,8 @@ struct WorkloadSettingsTabView: View {
     var body: some View {
         VStack(spacing: 20) {
             PageHeader(
-                title: "高负载任务",
-                subtitle: "设置放电阶段的 CPU 与 GPU 负载",
+                title: "workload.title",
+                subtitle: "workload.subtitle",
                 updatedAt: updatedAt
             )
             workloadCard
@@ -20,14 +20,14 @@ struct WorkloadSettingsTabView: View {
     }
 
     private var workloadCard: some View {
-        GroupBox("计算负载") {
+        GroupBox("workload.group.title") {
             VStack(alignment: .leading, spacing: 18) {
-                Toggle("在放电阶段运行高负载任务", isOn: $workloadEnabled)
+                Toggle("workload.enable_during_discharge", isOn: $workloadEnabled)
                     .font(.headline)
                     .disabled(cycle.isRunning)
                 Divider()
-                LabeledContent("负载强度") {
-                    Picker("负载强度", selection: $workloadLevelRaw) {
+                LabeledContent("workload.intensity") {
+                    Picker("workload.intensity", selection: $workloadLevelRaw) {
                         ForEach(WorkloadLevel.allCases) { level in
                             Text(level.title).tag(level.rawValue)
                         }
@@ -37,24 +37,28 @@ struct WorkloadSettingsTabView: View {
                     .frame(width: 320)
                     .disabled(!workloadEnabled || cycle.isRunning)
                 }
-                LabeledContent("CPU 工作线程") {
-                    Text("\(stressWorkerCount) / \(processorCount)")
+                LabeledContent("workload.cpu_workers") {
+                    Text(verbatim: "\(stressWorkerCount) / \(processorCount)")
                         .monospacedDigit()
                 }
                 Label(workloadLevel.detail, systemImage: "cpu")
                     .foregroundStyle(.secondary)
                 Divider()
-                Toggle("同时运行 GPU 并行计算", isOn: $gpuLoadEnabled)
+                Toggle("workload.gpu.enable", isOn: $gpuLoadEnabled)
                     .disabled(!workloadEnabled || cycle.isRunning || gpuName == nil)
-                LabeledContent("图形处理器") {
-                    Text(gpuName ?? "未检测到支持 Metal 的 GPU")
-                        .foregroundStyle(gpuName == nil ? .secondary : .primary)
+                LabeledContent("workload.gpu") {
+                    if let gpuName {
+                        Text(gpuName)
+                    } else {
+                        Text("workload.gpu.unavailable")
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                Label("任务仅在放电阶段运行；开始充电、停止循环或温度过高时会自动停止", systemImage: "thermometer.medium")
+                Label("workload.safety.note", systemImage: "thermometer.medium")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 if cycle.isRunning {
-                    Label("循环运行期间不能修改负载设置", systemImage: "lock.fill")
+                    Label("workload.locked_during_cycle", systemImage: "lock.fill")
                         .font(.callout)
                         .foregroundStyle(.orange)
                 }

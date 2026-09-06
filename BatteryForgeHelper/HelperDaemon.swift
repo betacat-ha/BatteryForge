@@ -78,7 +78,7 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
         guard FileManager.default.fileExists(atPath: forcedStopURL.path) else { return }
         configuration.enabled = false
         configuration.phase = "idle"
-        configuration.message = "后台服务更新完成，循环已安全停止"
+        configuration.message = HelperMessagePayload.encode("helper.runtime.updated_and_stopped")
         try? FileManager.default.removeItem(at: forcedStopURL)
         saveConfiguration()
     }
@@ -101,7 +101,7 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
     ) {
         DispatchQueue.main.async {
             guard lower >= 10, upper <= 100, upper - lower >= 10 else {
-                reply(false, "无效阈值：上下限至少相差 10%")
+                reply(false, HelperMessagePayload.encode("helper.runtime.invalid_thresholds"))
                 return
             }
             self.configuration.enabled = true
@@ -112,7 +112,7 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
             self.configuration.gpuLoad = gpuLoad
             self.configuration.completedCycles = 0
             self.configuration.phase = "preparing"
-            self.configuration.message = "后台循环已启动"
+            self.configuration.message = HelperMessagePayload.encode("helper.runtime.started")
             self.saveConfiguration()
             self.tick()
             reply(true, self.configuration.message)
@@ -124,7 +124,7 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
             NSLog("BatteryForge stop requested")
             self.configuration.enabled = false
             self.configuration.phase = "stopping"
-            self.configuration.message = "正在停止负载并恢复 AC 供电"
+            self.configuration.message = HelperMessagePayload.encode("helper.runtime.stopping")
             self.saveConfiguration()
             self.stressWorker.stop()
             do {
@@ -136,13 +136,13 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
                 if let restorationError { throw restorationError }
                 self.appliedAction = .normal
                 self.configuration.phase = "idle"
-                self.configuration.message = "已恢复正常供电，后台循环已停止"
+                self.configuration.message = HelperMessagePayload.encode("helper.runtime.stopped")
                 self.saveConfiguration()
                 NSLog("BatteryForge stop completed")
                 reply(true, self.configuration.message)
             } catch {
                 self.configuration.phase = "failed"
-                self.configuration.message = error.localizedDescription
+                self.configuration.message = HelperMessagePayload.encode("helper.runtime.restore_failed")
                 self.saveConfiguration()
                 NSLog("BatteryForge stop failed: \(error)")
                 reply(false, self.configuration.message)
@@ -169,13 +169,13 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
         }
         let configurationBeforeTick = configuration
         guard let battery = HelperBatteryReader.current() else {
-            failSafely("无法读取电池数据")
+            failSafely(HelperMessagePayload.encode("helper.runtime.battery_unavailable"))
             return
         }
 
         let thermal = ProcessInfo.processInfo.thermalState
         if thermal == .serious || thermal == .critical {
-            failSafely("系统温度过高，循环已安全停止")
+            failSafely(HelperMessagePayload.encode("helper.runtime.thermal_stop"))
             return
         }
 
@@ -198,10 +198,14 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
                 if previousPhase == "discharging" { configuration.completedCycles += 1 }
                 configuration.phase = "charging"
                 configuration.message = battery.adapterPresent
-                    ? "当前 \(battery.percent)%，正在充电至 \(configuration.upper)%"
-                    : "当前 \(battery.percent)%，等待连接电源"
+                    ? HelperMessagePayload.encode(
+                        "helper.runtime.charging",
+                        [battery.percent, configuration.upper]
+                    )
+                    : HelperMessagePayload.encode("helper.runtime.waiting_for_power", [battery.percent])
             } catch {
-                failSafely(error.localizedDescription)
+                NSLog("BatteryForge charging transition failed: \(error)")
+                failSafely(HelperMessagePayload.encode("helper.runtime.power_control_failed"))
                 return
             }
         } else {
@@ -216,16 +220,23 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
                     stressWorker.stop()
                 }
                 configuration.phase = "discharging"
-                let suffix: String
                 if stressWorker.isRunning {
-                    let gpuStatus = stressWorker.isGPURunning ? " + GPU" : ""
-                    suffix = " · \(stressWorker.workerCount) 个 CPU 线程\(gpuStatus)运行中"
+                    let key = stressWorker.isGPURunning
+                        ? "helper.runtime.discharging_cpu_gpu"
+                        : "helper.runtime.discharging_cpu"
+                    configuration.message = HelperMessagePayload.encode(
+                        key,
+                        [battery.percent, configuration.lower, stressWorker.workerCount]
+                    )
                 } else {
-                    suffix = ""
+                    configuration.message = HelperMessagePayload.encode(
+                        "helper.runtime.discharging",
+                        [battery.percent, configuration.lower]
+                    )
                 }
-                configuration.message = "当前 \(battery.percent)%，正在放电至 \(configuration.lower)%\(suffix) · 已阻止盒盖睡眠"
             } catch {
-                failSafely(error.localizedDescription)
+                NSLog("BatteryForge discharging transition failed: \(error)")
+                failSafely(HelperMessagePayload.encode("helper.runtime.power_control_failed"))
                 return
             }
         }

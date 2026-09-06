@@ -16,17 +16,17 @@ enum WorkloadLevel: Int, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .gentle: "温和"
-        case .balanced: "均衡"
-        case .maximum: "最大"
+        case .gentle: String(localized: "workload.level.gentle")
+        case .balanced: String(localized: "workload.level.balanced")
+        case .maximum: String(localized: "workload.level.maximum")
         }
     }
 
     var detail: String {
         switch self {
-        case .gentle: "使用约四分之一的 CPU 核心"
-        case .balanced: "使用约一半的 CPU 核心"
-        case .maximum: "使用除一个核心外的全部 CPU 核心"
+        case .gentle: String(localized: "workload.level.gentle.detail")
+        case .balanced: String(localized: "workload.level.balanced.detail")
+        case .maximum: String(localized: "workload.level.maximum.detail")
         }
     }
 

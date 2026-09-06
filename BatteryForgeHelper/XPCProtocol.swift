@@ -2,6 +2,17 @@ import Foundation
 
 let helperMachServiceName = "com.betacat.batteryforge.helper"
 
+struct HelperMessagePayload: Codable {
+    let key: String
+    let arguments: [String]
+
+    static func encode(_ key: String, _ arguments: [CustomStringConvertible] = []) -> String {
+        let payload = HelperMessagePayload(key: key, arguments: arguments.map(\.description))
+        guard let data = try? JSONEncoder().encode(payload) else { return key }
+        return String(decoding: data, as: UTF8.self)
+    }
+}
+
 @objc(BatteryHelperProtocol)
 protocol BatteryHelperProtocol {
     func configure(

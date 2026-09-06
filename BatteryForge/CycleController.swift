@@ -11,12 +11,12 @@ enum CyclePhase: Equatable {
 
     var title: String {
         switch self {
-        case .idle: "未运行"
-        case .preparing: "正在准备"
-        case .charging: "充电至上限"
-        case .discharging: "放电至下限"
-        case .stopping: "正在安全停止"
-        case .failed: "循环已停止"
+        case .idle: String(localized: "cycle.phase.idle")
+        case .preparing: String(localized: "cycle.phase.preparing")
+        case .charging: String(localized: "cycle.phase.charging")
+        case .discharging: String(localized: "cycle.phase.discharging")
+        case .stopping: String(localized: "cycle.phase.stopping")
+        case .failed: String(localized: "cycle.phase.failed")
         }
     }
 
@@ -35,7 +35,7 @@ enum CyclePhase: Equatable {
 final class CycleController: ObservableObject {
     @Published private(set) var phase: CyclePhase = .idle
     @Published private(set) var completedCycles = 0
-    @Published private(set) var statusMessage = "设置阈值后即可开始"
+    @Published private(set) var statusMessage = String(localized: "cycle.status.ready")
     @Published private(set) var stressRunning = false
 
     let helper = HelperManager()
@@ -59,19 +59,19 @@ final class CycleController: ObservableObject {
     func start(lower: Int, upper: Int, useStress: Bool, stressWorkers: Int, useGPU: Bool) {
         guard !isRunning else { return }
         guard lower >= 10, upper <= 100, upper - lower >= 10 else {
-            phase = .failed("上下限至少需要相差 10%")
-            statusMessage = "请调整充放电阈值"
+            phase = .failed(String(localized: "cycle.error.threshold_gap"))
+            statusMessage = String(localized: "cycle.status.adjust_thresholds")
             return
         }
         guard helper.state == .enabled else {
             helper.install()
-            phase = .failed("需要先批准后台服务")
-            statusMessage = helper.message.isEmpty ? "批准后台服务后再次点击开始" : helper.message
+            phase = .failed(String(localized: "helper.error.approval_required"))
+            statusMessage = helper.message.isEmpty ? String(localized: "helper.status.approve_then_retry") : helper.message
             return
         }
 
         phase = .preparing
-        statusMessage = "正在将循环任务交给后台服务"
+        statusMessage = String(localized: "cycle.status.handing_to_helper")
         helper.startCycle(
             lower: lower,
             upper: upper,
@@ -90,16 +90,19 @@ final class CycleController: ObservableObject {
 
     func stop() {
         guard isRunning || helper.isCycleRunning else {
-            if case .failed = phase { phase = .idle; statusMessage = "设置阈值后即可开始" }
+            if case .failed = phase {
+                phase = .idle
+                statusMessage = String(localized: "cycle.status.ready")
+            }
             return
         }
         phase = .stopping
-        statusMessage = "后台服务正在恢复 AC 供电和正常充电"
+        statusMessage = String(localized: "cycle.status.restoring_power")
         helper.stopCycle { [weak self] result in
             switch result {
             case .success:
                 self?.phase = .idle
-                self?.statusMessage = "已安全停止"
+                self?.statusMessage = String(localized: "cycle.status.stopped_safely")
                 self?.stressRunning = false
             case .failure(let error):
                 self?.phase = .failed(error.localizedDescription)

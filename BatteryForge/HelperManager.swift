@@ -21,6 +21,72 @@ protocol BatteryHelperProtocol {
     func status(reply: @escaping (Bool, String, Int, Bool, String) -> Void)
 }
 
+private struct HelperMessagePayload: Decodable {
+    let key: String
+    let arguments: [String]
+}
+
+private func localizedHelperMessage(_ rawValue: String) -> String {
+    guard let data = rawValue.data(using: .utf8),
+          let payload = try? JSONDecoder().decode(HelperMessagePayload.self, from: data)
+    else { return rawValue }
+
+    let format: String
+    switch payload.key {
+    case "helper.runtime.updated_and_stopped":
+        format = String(localized: "helper.runtime.updated_and_stopped")
+    case "helper.runtime.invalid_thresholds":
+        format = String(localized: "helper.runtime.invalid_thresholds")
+    case "helper.runtime.started":
+        format = String(localized: "helper.runtime.started")
+    case "helper.runtime.stopping":
+        format = String(localized: "helper.runtime.stopping")
+    case "helper.runtime.stopped":
+        format = String(localized: "helper.runtime.stopped")
+    case "helper.runtime.battery_unavailable":
+        format = String(localized: "helper.runtime.battery_unavailable")
+    case "helper.runtime.thermal_stop":
+        format = String(localized: "helper.runtime.thermal_stop")
+    case "helper.runtime.power_control_failed":
+        format = String(localized: "helper.runtime.power_control_failed")
+    case "helper.runtime.restore_failed":
+        format = String(localized: "helper.runtime.restore_failed")
+    case "helper.runtime.charging":
+        guard payload.arguments.count == 2 else { return rawValue }
+        format = String(localized: "helper.runtime.charging")
+        return String.localizedStringWithFormat(format, payload.arguments[0], payload.arguments[1])
+    case "helper.runtime.waiting_for_power":
+        guard payload.arguments.count == 1 else { return rawValue }
+        format = String(localized: "helper.runtime.waiting_for_power")
+        return String.localizedStringWithFormat(format, payload.arguments[0])
+    case "helper.runtime.discharging":
+        guard payload.arguments.count == 2 else { return rawValue }
+        format = String(localized: "helper.runtime.discharging")
+        return String.localizedStringWithFormat(format, payload.arguments[0], payload.arguments[1])
+    case "helper.runtime.discharging_cpu":
+        guard payload.arguments.count == 3 else { return rawValue }
+        format = String(localized: "helper.runtime.discharging_cpu")
+        return String.localizedStringWithFormat(
+            format,
+            payload.arguments[0],
+            payload.arguments[1],
+            payload.arguments[2]
+        )
+    case "helper.runtime.discharging_cpu_gpu":
+        guard payload.arguments.count == 3 else { return rawValue }
+        format = String(localized: "helper.runtime.discharging_cpu_gpu")
+        return String.localizedStringWithFormat(
+            format,
+            payload.arguments[0],
+            payload.arguments[1],
+            payload.arguments[2]
+        )
+    default:
+        return rawValue
+    }
+    return format
+}
+
 enum HelperState: Equatable {
     case notRegistered
     case installing
@@ -29,10 +95,10 @@ enum HelperState: Equatable {
 
     var title: String {
         switch self {
-        case .notRegistered: "后台服务未安装"
-        case .installing: "正在安装后台服务"
-        case .enabled: "后台服务已启用"
-        case .unavailable: "后台服务不可用"
+        case .notRegistered: String(localized: "helper.state.not_installed")
+        case .installing: String(localized: "helper.state.installing")
+        case .enabled: String(localized: "helper.state.enabled")
+        case .unavailable: String(localized: "helper.state.unavailable")
         }
     }
 }
@@ -63,27 +129,27 @@ final class HelperManager: ObservableObject {
     func install() {
         guard state != .installing else { return }
         guard let helperURL = Bundle.main.url(forResource: "BatteryForgeHelper", withExtension: nil) else {
-            state = .unavailable("应用包中缺少后台服务文件")
+            state = .unavailable(String(localized: "helper.error.executable_missing"))
             return
         }
         let plistURL = Bundle.main.bundleURL
             .appendingPathComponent("Contents/Library/LaunchDaemons")
             .appendingPathComponent(HelperConstants.plistName)
         guard FileManager.default.fileExists(atPath: plistURL.path) else {
-            state = .unavailable("应用包中缺少 LaunchDaemon 配置")
+            state = .unavailable(String(localized: "helper.error.launch_daemon_missing"))
             return
         }
         // Remove the earlier SMAppService registration before migrating to the
         // locally installed daemon. This is harmless when it was never used.
         try? previousService.unregister()
         state = .installing
-        message = "系统将询问一次管理员密码"
+        message = String(localized: "helper.status.authorization_prompt")
         Task.detached {
             do {
                 try HelperInstaller.install(helperURL: helperURL, plistURL: plistURL)
                 await MainActor.run {
                     self.state = .enabled
-                    self.message = "后台服务已安装，后续无需重复授权"
+                    self.message = String(localized: "helper.status.installed")
                     self.connection?.invalidate()
                     self.connection = nil
                     self.refreshStatus()
@@ -119,9 +185,12 @@ final class HelperManager: ObservableObject {
                 gpuLoad: gpuLoad
             ) { [weak self] success, message in
                 Task { @MainActor in
-                    self?.message = message
+                    let localizedMessage = localizedHelperMessage(message)
+                    self?.message = localizedMessage
                     self?.refreshStatus()
-                    success ? completion(.success(())) : completion(.failure(HelperManagerError.helper(message)))
+                    success
+                        ? completion(.success(()))
+                        : completion(.failure(HelperManagerError.helper(localizedMessage)))
                 }
             }
         } onError: { completion(.failure($0)) }
@@ -135,9 +204,12 @@ final class HelperManager: ObservableObject {
         proxy { proxy in
             proxy.stop { [weak self] success, message in
                 Task { @MainActor in
-                    self?.message = message
+                    let localizedMessage = localizedHelperMessage(message)
+                    self?.message = localizedMessage
                     self?.refreshStatus()
-                    success ? completion(.success(())) : completion(.failure(HelperManagerError.helper(message)))
+                    success
+                        ? completion(.success(()))
+                        : completion(.failure(HelperManagerError.helper(localizedMessage)))
                 }
             }
         } onError: { completion(.failure($0)) }
@@ -152,7 +224,7 @@ final class HelperManager: ObservableObject {
                     self?.phase = phase
                     self?.completedCycles = cycles
                     self?.highLoadRunning = highLoad
-                    self?.message = message
+                    self?.message = localizedHelperMessage(message)
                     completion?()
                 }
             }
@@ -202,8 +274,8 @@ enum HelperManagerError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notEnabled: "请先安装并批准后台服务"
-        case .connectionFailed: "无法连接后台服务"
+        case .notEnabled: String(localized: "helper.error.not_enabled")
+        case .connectionFailed: String(localized: "helper.error.connection_failed")
         case .helper(let message): message
         }
     }
@@ -242,7 +314,9 @@ private enum HelperInstaller {
         guard process.terminationStatus == 0 else {
             let detail = String(data: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            throw HelperManagerError.helper(detail?.isEmpty == false ? detail! : "安装已取消")
+            throw HelperManagerError.helper(
+                detail?.isEmpty == false ? detail! : String(localized: "helper.error.install_cancelled")
+            )
         }
     }
 

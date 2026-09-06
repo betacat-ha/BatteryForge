@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct PageHeader: View {
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     let updatedAt: Date
 
     var body: some View {
@@ -14,7 +14,12 @@ struct PageHeader: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text("更新于 \(updatedAt, format: .dateTime.hour().minute().second())")
+            Text(
+                String.localizedStringWithFormat(
+                    String(localized: "common.updated_at"),
+                    updatedAt.formatted(.dateTime.hour().minute().second())
+                )
+            )
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -24,16 +29,16 @@ struct PageHeader: View {
 struct NoBatteryView: View {
     var body: some View {
         ContentUnavailableView(
-            "未检测到电池",
+            "battery.not_detected",
             systemImage: "battery.0percent",
-            description: Text("此 Mac 可能没有内置电池，或系统暂时无法读取电池信息。")
+            description: Text("battery.not_detected.description")
         )
         .frame(minHeight: 360)
     }
 }
 
 struct HeroValue: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
 
     var body: some View {
@@ -45,7 +50,7 @@ struct HeroValue: View {
 }
 
 struct MetricCard: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
     let detail: String
     let icon: String
