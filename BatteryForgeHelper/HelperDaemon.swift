@@ -56,9 +56,11 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
     private var powerNotifier: io_object_t = 0
 
     private let configurationURL = URL(fileURLWithPath: "/Library/Application Support/BatteryForge/config.json")
+    private let forcedStopURL = URL(fileURLWithPath: "/Library/Application Support/BatteryForge/force-stop")
 
     func run() {
         loadConfiguration()
+        applyForcedStopIfRequested()
         restorePower()
         installSignalHandlers()
         installSleepHandler()
@@ -70,6 +72,15 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.tick() }
         tick()
         RunLoop.main.run()
+    }
+
+    private func applyForcedStopIfRequested() {
+        guard FileManager.default.fileExists(atPath: forcedStopURL.path) else { return }
+        configuration.enabled = false
+        configuration.phase = "idle"
+        configuration.message = "后台服务更新完成，循环已安全停止"
+        try? FileManager.default.removeItem(at: forcedStopURL)
+        saveConfiguration()
     }
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
@@ -109,9 +120,12 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
     }
 
     func stop(reply: @escaping (Bool, String) -> Void) {
-        DispatchQueue.main.async {
+        DispatchQueue.main.async(qos: .userInteractive) {
+            NSLog("BatteryForge stop requested")
             self.configuration.enabled = false
             self.configuration.phase = "stopping"
+            self.configuration.message = "正在停止负载并恢复 AC 供电"
+            self.saveConfiguration()
             self.stressWorker.stop()
             do {
                 var restorationError: Error?
@@ -124,11 +138,13 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
                 self.configuration.phase = "idle"
                 self.configuration.message = "已恢复正常供电，后台循环已停止"
                 self.saveConfiguration()
+                NSLog("BatteryForge stop completed")
                 reply(true, self.configuration.message)
             } catch {
                 self.configuration.phase = "failed"
                 self.configuration.message = error.localizedDescription
                 self.saveConfiguration()
+                NSLog("BatteryForge stop failed: \(error)")
                 reply(false, self.configuration.message)
             }
         }
@@ -432,7 +448,7 @@ private final class HelperStressWorker {
             )
             workerCount = count
             workers = (0..<count).map { seed in
-                Task.detached(priority: .high) {
+                Task.detached(priority: .background) {
                     var value = Double(seed + 1)
                     while !Task.isCancelled {
                         for _ in 0..<100_000 {
@@ -491,7 +507,7 @@ private final class HelperGPUWorker {
                 values[index] = SIMD4(seed, seed + 0.1, seed + 0.2, seed + 0.3)
             }
 
-            task = Task.detached(priority: .high) {
+            task = Task.detached(priority: .utility) {
                 while !Task.isCancelled {
                     autoreleasepool {
                         guard let commandBuffer = commandQueue.makeCommandBuffer(),

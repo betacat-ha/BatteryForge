@@ -128,6 +128,10 @@ final class HelperManager: ObservableObject {
     }
 
     func stopCycle(completion: @escaping (Result<Void, Error>) -> Void) {
+        // A stop command must not wait behind status requests already queued
+        // on the long-lived connection.
+        connection?.invalidate()
+        connection = nil
         proxy { proxy in
             proxy.stop { [weak self] success, message in
                 Task { @MainActor in
@@ -139,7 +143,7 @@ final class HelperManager: ObservableObject {
         } onError: { completion(.failure($0)) }
     }
 
-    func refreshStatus() {
+    func refreshStatus(completion: (() -> Void)? = nil) {
         guard state == .enabled else { return }
         proxy { proxy in
             proxy.status { [weak self] running, phase, cycles, highLoad, message in
@@ -149,17 +153,23 @@ final class HelperManager: ObservableObject {
                     self?.completedCycles = cycles
                     self?.highLoadRunning = highLoad
                     self?.message = message
+                    completion?()
                 }
             }
-        } onError: { [weak self] error in self?.message = error.localizedDescription }
+        } onError: { [weak self] error in
+            self?.message = error.localizedDescription
+            completion?()
+        }
     }
 
     private func proxy(_ operation: (BatteryHelperProtocol) -> Void, onError: @escaping (Error) -> Void) {
         let connection = ensureConnection()
         guard let proxy = connection.remoteObjectProxyWithErrorHandler({ error in
             Task { @MainActor in
-                self.connection?.invalidate()
-                self.connection = nil
+                if self.connection === connection {
+                    self.connection?.invalidate()
+                    self.connection = nil
+                }
                 onError(error)
             }
         }) as? BatteryHelperProtocol else {
@@ -173,8 +183,11 @@ final class HelperManager: ObservableObject {
         if let connection { return connection }
         let newConnection = NSXPCConnection(machServiceName: HelperConstants.machServiceName, options: .privileged)
         newConnection.remoteObjectInterface = NSXPCInterface(with: BatteryHelperProtocol.self)
-        newConnection.invalidationHandler = { [weak self] in
-            Task { @MainActor in self?.connection = nil }
+        newConnection.invalidationHandler = { [weak self, weak newConnection] in
+            Task { @MainActor in
+                guard let newConnection, self?.connection === newConnection else { return }
+                self?.connection = nil
+            }
         }
         newConnection.resume()
         connection = newConnection
@@ -201,6 +214,8 @@ private enum HelperInstaller {
         let helperDestination = "/Library/PrivilegedHelperTools/com.betacat.batteryforge.helper"
         let plistDestination = "/Library/LaunchDaemons/com.betacat.batteryforge.helper.plist"
         let command = [
+            "/bin/mkdir -p '/Library/Application Support/BatteryForge'",
+            "/usr/bin/touch '/Library/Application Support/BatteryForge/force-stop'",
             "/bin/launchctl bootout system/com.betacat.batteryforge.helper 2>/dev/null || true",
             "/bin/launchctl bootout system/cn.com.betacat.battery.helper 2>/dev/null || true",
             "/bin/rm -f /Library/PrivilegedHelperTools/cn.com.betacat.battery.helper",

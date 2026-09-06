@@ -116,14 +116,26 @@ final class CycleController: ObservableObject {
     func synchronizeWithHelper() {
         helper.refreshRegistrationState()
         guard helper.state == .enabled else { return }
-        helper.refreshStatus()
+        helper.refreshStatus { [weak self] in
+            self?.applyHelperStatus()
+        }
+    }
+
+    private func applyHelperStatus() {
         completedCycles = helper.completedCycles
         stressRunning = helper.highLoadRunning
-        statusMessage = helper.message.isEmpty ? statusMessage : helper.message
+        if phase != .stopping {
+            statusMessage = helper.message.isEmpty ? statusMessage : helper.message
+        }
         guard helper.isCycleRunning else {
-            if phase != .preparing && phase != .stopping { phase = .idle }
+            if phase != .preparing && phase != .stopping {
+                phase = helper.phase == "failed" ? .failed(helper.message) : .idle
+            }
             return
         }
+        // A status response issued before Stop was clicked may still describe
+        // discharging. Keep the local stopping state until Stop replies.
+        if phase == .stopping { return }
         switch helper.phase {
         case "charging": phase = .charging
         case "discharging": phase = .discharging

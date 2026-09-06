@@ -85,9 +85,10 @@ struct CycleSettingsTabView: View {
                     Text("运行时无需再次授权")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button("更新后台服务") { cycle.installHelper() }
+                    Button(cycle.isRunning ? "重新安装并停止" : "更新后台服务") {
+                        cycle.installHelper()
+                    }
                         .controlSize(.small)
-                        .disabled(cycle.isRunning)
                 }
             }
         }
