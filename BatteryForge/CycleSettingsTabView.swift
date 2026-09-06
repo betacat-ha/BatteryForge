@@ -95,11 +95,8 @@ struct CycleSettingsTabView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Text("helper.authorization.once")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                     if !helper.requiresUpdate {
-                        Button(helperUpdateTitle) {
+                        Button(helperReinstallTitle) {
                             cycle.installHelper()
                         }
                             .controlSize(.small)
@@ -218,5 +215,11 @@ struct CycleSettingsTabView: View {
         cycle.isRunning
             ? String(localized: "helper.action.reinstall_and_stop", locale: AppLanguage.currentLocale)
             : String(localized: "helper.action.update", locale: AppLanguage.currentLocale)
+    }
+
+    private var helperReinstallTitle: String {
+        cycle.isRunning
+            ? String(localized: "helper.action.reinstall_and_stop", locale: AppLanguage.currentLocale)
+            : String(localized: "helper.action.reinstall", locale: AppLanguage.currentLocale)
     }
 }

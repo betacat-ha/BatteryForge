@@ -961,6 +961,22 @@
         }
       }
     },
+    "helper.action.reinstall": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reinstall Helper Service"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新安装后台服务"
+          }
+        }
+      }
+    },
     "workload.level.maximum": {
       "localizations": {
         "en": {
@@ -1613,22 +1629,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "负载强度"
-          }
-        }
-      }
-    },
-    "helper.authorization.once": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No further authorization required while running"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "运行时无需再次授权"
           }
         }
       }
