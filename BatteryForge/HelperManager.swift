@@ -5,7 +5,7 @@ import Combine
 enum HelperConstants {
     nonisolated static let machServiceName = "com.betacat.batteryforge.helper"
     nonisolated static let plistName = "com.betacat.batteryforge.helper.plist"
-    nonisolated static let bundledVersion = "0.0.1"
+    nonisolated static let bundledVersion = "0.0.2"
     nonisolated static let versionFilePath = "/Library/Application Support/BatteryForge/helper-version"
 }
 

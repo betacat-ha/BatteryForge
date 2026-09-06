@@ -444,7 +444,7 @@ private enum SleepPolicyError: LocalizedError {
 }
 
 private final class HelperStressWorker {
-    private var workers: [Task<Void, Never>] = []
+    private var workers: [Thread] = []
     private var activity: NSObjectProtocol?
     private let gpuWorker = HelperGPUWorker()
     var isRunning: Bool { !workers.isEmpty }
@@ -461,16 +461,19 @@ private final class HelperStressWorker {
             )
             workerCount = count
             workers = (0..<count).map { seed in
-                Task.detached(priority: .background) {
+                let thread = Thread {
                     var value = Double(seed + 1)
-                    while !Task.isCancelled {
-                        for _ in 0..<100_000 {
+                    while !Thread.current.isCancelled {
+                        for _ in 0..<10_000 {
                             value = sin(value) * cos(value + 0.5) + 1.000_001
                         }
                         if !value.isFinite { value = Double(seed + 1) }
-                        await Task.yield()
                     }
                 }
+                thread.name = "BatteryForge CPU Worker \(seed + 1)"
+                thread.qualityOfService = .userInitiated
+                thread.start()
+                return thread
             }
         }
         if gpuEnabled {
