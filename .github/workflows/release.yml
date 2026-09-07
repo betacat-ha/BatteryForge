@@ -1,0 +1,185 @@
+name: Build and Publish
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel
+        required: true
+        default: beta
+        type: choice
+        options:
+          - release
+          - beta
+          - alpha
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[release]') ||
+      contains(github.event.head_commit.message, '[beta]') ||
+      contains(github.event.head_commit.message, '[alpha]')
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve release metadata
+        id: metadata
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_CHANNEL: ${{ inputs.channel }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            channel="$MANUAL_CHANNEL"
+          elif [[ "$COMMIT_MESSAGE" == *"[release]"* ]]; then
+            channel="release"
+          elif [[ "$COMMIT_MESSAGE" == *"[beta]"* ]]; then
+            channel="beta"
+          else
+            channel="alpha"
+          fi
+
+          settings="$(xcodebuild \
+            -project BatteryForge.xcodeproj \
+            -target BatteryForge \
+            -configuration Release \
+            -showBuildSettings)"
+          version="$(awk '/ MARKETING_VERSION = / { print $3; exit }' <<< "$settings")"
+
+          if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
+            echo "Invalid MARKETING_VERSION: $version" >&2
+            exit 1
+          fi
+
+          if [[ "$channel" == "release" ]]; then
+            tag="v${version}"
+            title="BatteryForge ${version}"
+            prerelease="false"
+          else
+            tag="v${version}-${channel}.${GITHUB_RUN_NUMBER}"
+            title="BatteryForge ${version} ${channel}.${GITHUB_RUN_NUMBER}"
+            prerelease="true"
+          fi
+
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+
+      - name: Reject an existing release tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. Update MARKETING_VERSION before publishing it again." >&2
+            exit 1
+          fi
+
+      - name: Build release app
+        shell: bash
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project BatteryForge.xcodeproj \
+            -scheme BatteryForge \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            ARCHS="arm64 x86_64" \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Sign, validate, and package
+        id: package
+        shell: bash
+        env:
+          TAG: ${{ steps.metadata.outputs.tag }}
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/DerivedData/Build/Products/Release/BatteryForge.app"
+          artifact="BatteryForge-${TAG}-macOS.zip"
+          output="$RUNNER_TEMP/release"
+
+          test -d "$app"
+          test -f "$app/Contents/Resources/AppIcon.icns"
+          test -x "$app/Contents/Resources/BatteryForgeHelper"
+          test -f "$app/Contents/Library/LaunchDaemons/com.betacat.batteryforge.helper.plist"
+
+          for binary in \
+            "$app/Contents/MacOS/BatteryForge" \
+            "$app/Contents/Resources/BatteryForgeHelper"; do
+            archs="$(lipo -archs "$binary")"
+            [[ "$archs" == *"arm64"* && "$archs" == *"x86_64"* ]]
+          done
+
+          codesign --force --deep --sign - "$app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+
+          mkdir -p "$output"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$output/$artifact"
+          (
+            cd "$output"
+            shasum -a 256 "$artifact" > "$artifact.sha256"
+          )
+
+          echo "archive=$output/$artifact" >> "$GITHUB_OUTPUT"
+          echo "checksum=$output/$artifact.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          TITLE: ${{ steps.metadata.outputs.title }}
+          PRERELEASE: ${{ steps.metadata.outputs.prerelease }}
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+          CHECKSUM: ${{ steps.package.outputs.checksum }}
+        run: |
+          set -euo pipefail
+          args=(
+            release create "$TAG"
+            "$ARCHIVE"
+            "$CHECKSUM"
+            --repo "$GITHUB_REPOSITORY"
+            --target "$GITHUB_SHA"
+            --title "$TITLE"
+            --generate-notes
+          )
+
+          if [[ "$PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          else
+            args+=(--latest)
+          fi
+
+          gh "${args[@]}"
