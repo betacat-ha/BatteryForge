@@ -35,6 +35,8 @@ struct ContentView: View {
                 Divider()
                 Label("sidebar.settings", systemImage: "gearshape")
                     .tag(SidebarPage.settings)
+                Label("sidebar.about", systemImage: "info.circle")
+                    .tag(SidebarPage.about)
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
         } detail: {
@@ -80,7 +82,7 @@ struct ContentView: View {
                 gpuLoadEnabled: effectiveGPULoadEnabled
             )
         case .history:
-            HistoryTabView(updatedAt: monitor.snapshot.lastUpdated)
+            HistoryTabView(helper: cycle.helper)
         case .settings:
             SettingsTabView(
                 cycle: cycle,
@@ -92,6 +94,8 @@ struct ContentView: View {
                 gpuLoadEnabled: $gpuLoadEnabled,
                 languageRawValue: $appLanguageRawValue
             )
+        case .about:
+            AboutTabView()
         }
     }
 

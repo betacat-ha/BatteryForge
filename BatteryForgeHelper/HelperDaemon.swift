@@ -48,6 +48,7 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
     static let shared = HelperDaemon()
 
     private var configuration = CycleConfiguration()
+    private var historyEntries: [HelperHistoryEntry] = []
     private var appliedAction: PowerAction?
     private var timer: Timer?
     private let stressWorker = HelperStressWorker()
@@ -58,10 +59,12 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
     private let configurationURL = URL(fileURLWithPath: "/Library/Application Support/BatteryForge/config.json")
     private let forcedStopURL = URL(fileURLWithPath: "/Library/Application Support/BatteryForge/force-stop")
     private let versionURL = URL(fileURLWithPath: "/Library/Application Support/BatteryForge/helper-version")
+    private let historyURL = URL(fileURLWithPath: "/Library/Application Support/BatteryForge/history.json")
 
     func run() {
         try? helperVersion.write(to: versionURL, atomically: true, encoding: .utf8)
         loadConfiguration()
+        loadHistory()
         applyForcedStopIfRequested()
         restorePower()
         installSignalHandlers()
@@ -78,11 +81,13 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
 
     private func applyForcedStopIfRequested() {
         guard FileManager.default.fileExists(atPath: forcedStopURL.path) else { return }
+        let wasEnabled = configuration.enabled
         configuration.enabled = false
         configuration.phase = "idle"
         configuration.message = HelperMessagePayload.encode("helper.runtime.updated_and_stopped")
         try? FileManager.default.removeItem(at: forcedStopURL)
         saveConfiguration()
+        if wasEnabled { appendHistory(kind: "stopped", message: configuration.message) }
     }
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
@@ -116,6 +121,11 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
             self.configuration.phase = "preparing"
             self.configuration.message = HelperMessagePayload.encode("helper.runtime.started")
             self.saveConfiguration()
+            self.appendHistory(
+                kind: "started",
+                batteryPercent: HelperBatteryReader.current()?.percent,
+                message: self.configuration.message
+            )
             self.tick()
             reply(true, self.configuration.message)
         }
@@ -140,12 +150,22 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
                 self.configuration.phase = "idle"
                 self.configuration.message = HelperMessagePayload.encode("helper.runtime.stopped")
                 self.saveConfiguration()
+                self.appendHistory(
+                    kind: "stopped",
+                    batteryPercent: HelperBatteryReader.current()?.percent,
+                    message: self.configuration.message
+                )
                 NSLog("BatteryForge stop completed")
                 reply(true, self.configuration.message)
             } catch {
                 self.configuration.phase = "failed"
                 self.configuration.message = HelperMessagePayload.encode("helper.runtime.restore_failed")
                 self.saveConfiguration()
+                self.appendHistory(
+                    kind: "failed",
+                    batteryPercent: HelperBatteryReader.current()?.percent,
+                    message: self.configuration.message
+                )
                 NSLog("BatteryForge stop failed: \(error)")
                 reply(false, self.configuration.message)
             }
@@ -164,6 +184,27 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
         }
     }
 
+    func history(reply: @escaping (String) -> Void) {
+        DispatchQueue.main.async {
+            let data = (try? JSONEncoder().encode(self.historyEntries)) ?? Data("[]".utf8)
+            reply(String(decoding: data, as: UTF8.self))
+        }
+    }
+
+    func clearHistory(reply: @escaping (Bool, String) -> Void) {
+        DispatchQueue.main.async {
+            let previousEntries = self.historyEntries
+            self.historyEntries = []
+            do {
+                try self.saveHistory()
+                reply(true, "")
+            } catch {
+                self.historyEntries = previousEntries
+                reply(false, error.localizedDescription)
+            }
+        }
+    }
+
     private func tick() {
         guard configuration.enabled else {
             stressWorker.stop()
@@ -177,7 +218,10 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
 
         let thermal = ProcessInfo.processInfo.thermalState
         if thermal == .serious || thermal == .critical {
-            failSafely(HelperMessagePayload.encode("helper.runtime.thermal_stop"))
+            failSafely(
+                HelperMessagePayload.encode("helper.runtime.thermal_stop"),
+                batteryPercent: battery.percent
+            )
             return
         }
 
@@ -197,7 +241,8 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
             stressWorker.stop()
             do {
                 try applyIfNeeded(.normal)
-                if previousPhase == "discharging" { configuration.completedCycles += 1 }
+                let completedCycle = previousPhase == "discharging"
+                if completedCycle { configuration.completedCycles += 1 }
                 configuration.phase = "charging"
                 configuration.message = battery.adapterPresent
                     ? HelperMessagePayload.encode(
@@ -205,9 +250,26 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
                         [battery.percent, configuration.upper]
                     )
                     : HelperMessagePayload.encode("helper.runtime.waiting_for_power", [battery.percent])
+                if completedCycle {
+                    appendHistory(
+                        kind: "completed",
+                        batteryPercent: battery.percent,
+                        message: configuration.message
+                    )
+                }
+                if previousPhase != "charging" {
+                    appendHistory(
+                        kind: "charging",
+                        batteryPercent: battery.percent,
+                        message: configuration.message
+                    )
+                }
             } catch {
                 NSLog("BatteryForge charging transition failed: \(error)")
-                failSafely(HelperMessagePayload.encode("helper.runtime.power_control_failed"))
+                failSafely(
+                    HelperMessagePayload.encode("helper.runtime.power_control_failed"),
+                    batteryPercent: battery.percent
+                )
                 return
             }
         } else {
@@ -236,9 +298,19 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
                         [battery.percent, configuration.lower]
                     )
                 }
+                if previousPhase != "discharging" {
+                    appendHistory(
+                        kind: "discharging",
+                        batteryPercent: battery.percent,
+                        message: configuration.message
+                    )
+                }
             } catch {
                 NSLog("BatteryForge discharging transition failed: \(error)")
-                failSafely(HelperMessagePayload.encode("helper.runtime.power_control_failed"))
+                failSafely(
+                    HelperMessagePayload.encode("helper.runtime.power_control_failed"),
+                    batteryPercent: battery.percent
+                )
                 return
             }
         }
@@ -273,13 +345,14 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
         }
     }
 
-    private func failSafely(_ message: String) {
+    private func failSafely(_ message: String, batteryPercent: Int? = nil) {
         stressWorker.stop()
         restorePower()
         configuration.enabled = false
         configuration.phase = "failed"
         configuration.message = message
         saveConfiguration()
+        appendHistory(kind: "failed", batteryPercent: batteryPercent, message: message)
     }
 
     private func restorePower() {
@@ -332,15 +405,60 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
         }
     }
 
+    private func loadHistory() {
+        guard let data = try? Data(contentsOf: historyURL),
+              let saved = try? JSONDecoder().decode([HelperHistoryEntry].self, from: data)
+        else { return }
+        historyEntries = Array(saved.suffix(500))
+    }
+
+    private func appendHistory(kind: String, batteryPercent: Int? = nil, message: String) {
+        historyEntries.append(
+            HelperHistoryEntry(
+                id: UUID(),
+                timestamp: Date(),
+                kind: kind,
+                batteryPercent: batteryPercent,
+                lower: configuration.lower,
+                upper: configuration.upper,
+                completedCycles: configuration.completedCycles,
+                highLoad: configuration.highLoad,
+                stressWorkers: configuration.stressWorkers,
+                gpuLoad: configuration.gpuLoad,
+                message: message
+            )
+        )
+        if historyEntries.count > 500 {
+            historyEntries.removeFirst(historyEntries.count - 500)
+        }
+        do {
+            try saveHistory()
+        } catch {
+            NSLog("Battery helper could not persist history: \(error)")
+        }
+    }
+
+    private func saveHistory() throws {
+        let directory = historyURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let data = try JSONEncoder().encode(historyEntries)
+        try data.write(to: historyURL, options: .atomic)
+    }
+
     private func installSignalHandlers() {
         signal(SIGTERM, SIG_IGN)
         signal(SIGINT, SIG_IGN)
         for signalNumber in [SIGTERM, SIGINT] {
             let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .main)
             source.setEventHandler { [weak self] in
-                self?.configuration.enabled = false
-                self?.restorePower()
-                self?.saveConfiguration()
+                guard let self else { exit(0) }
+                let wasEnabled = self.configuration.enabled
+                self.configuration.enabled = false
+                self.restorePower()
+                self.configuration.phase = "idle"
+                self.configuration.message = HelperMessagePayload.encode("helper.runtime.stopped")
+                self.saveConfiguration()
+                if wasEnabled { self.appendHistory(kind: "stopped", message: self.configuration.message) }
                 exit(0)
             }
             source.resume()

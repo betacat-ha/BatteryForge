@@ -4,6 +4,7 @@ enum SidebarPage: String, Hashable {
     case overview
     case history
     case settings
+    case about
 }
 
 enum WorkloadLevel: Int, CaseIterable, Identifiable {

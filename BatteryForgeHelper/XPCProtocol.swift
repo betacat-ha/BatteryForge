@@ -1,7 +1,7 @@
 import Foundation
 
 let helperMachServiceName = "com.betacat.batteryforge.helper"
-let helperVersion = "0.0.2"
+let helperVersion = "0.0.3"
 
 struct HelperMessagePayload: Codable {
     let key: String
@@ -12,6 +12,20 @@ struct HelperMessagePayload: Codable {
         guard let data = try? JSONEncoder().encode(payload) else { return key }
         return String(decoding: data, as: UTF8.self)
     }
+}
+
+struct HelperHistoryEntry: Codable {
+    let id: UUID
+    let timestamp: Date
+    let kind: String
+    let batteryPercent: Int?
+    let lower: Int
+    let upper: Int
+    let completedCycles: Int
+    let highLoad: Bool
+    let stressWorkers: Int
+    let gpuLoad: Bool
+    let message: String
 }
 
 @objc(BatteryHelperProtocol)
@@ -26,4 +40,6 @@ protocol BatteryHelperProtocol {
     )
     func stop(reply: @escaping (Bool, String) -> Void)
     func status(reply: @escaping (Bool, String, Int, Bool, String) -> Void)
+    func history(reply: @escaping (String) -> Void)
+    func clearHistory(reply: @escaping (Bool, String) -> Void)
 }

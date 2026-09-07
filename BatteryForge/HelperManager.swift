@@ -5,7 +5,7 @@ import Combine
 enum HelperConstants {
     nonisolated static let machServiceName = "com.betacat.batteryforge.helper"
     nonisolated static let plistName = "com.betacat.batteryforge.helper.plist"
-    nonisolated static let bundledVersion = "0.0.2"
+    nonisolated static let bundledVersion = "0.0.3"
     nonisolated static let versionFilePath = "/Library/Application Support/BatteryForge/helper-version"
 }
 
@@ -21,6 +21,8 @@ protocol BatteryHelperProtocol {
     )
     func stop(reply: @escaping (Bool, String) -> Void)
     func status(reply: @escaping (Bool, String, Int, Bool, String) -> Void)
+    func history(reply: @escaping (String) -> Void)
+    func clearHistory(reply: @escaping (Bool, String) -> Void)
 }
 
 private struct HelperMessagePayload: Decodable {
@@ -50,7 +52,7 @@ private struct HelperSemanticVersion: Comparable {
     }
 }
 
-private func localizedHelperMessage(_ rawValue: String) -> String {
+func localizedHelperMessage(_ rawValue: String) -> String {
     guard let data = rawValue.data(using: .utf8),
           let payload = try? JSONDecoder().decode(HelperMessagePayload.self, from: data)
     else { return rawValue }
@@ -111,6 +113,20 @@ private func localizedHelperMessage(_ rawValue: String) -> String {
     return format
 }
 
+struct CycleHistoryEntry: Codable, Identifiable, Equatable {
+    let id: UUID
+    let timestamp: Date
+    let kind: String
+    let batteryPercent: Int?
+    let lower: Int
+    let upper: Int
+    let completedCycles: Int
+    let highLoad: Bool
+    let stressWorkers: Int
+    let gpuLoad: Bool
+    let message: String
+}
+
 enum HelperState: Equatable {
     case notRegistered
     case installing
@@ -137,6 +153,10 @@ final class HelperManager: ObservableObject {
     @Published private(set) var message = ""
     @Published private(set) var bundledVersion: String? = HelperConstants.bundledVersion
     @Published private(set) var installedVersion: String?
+    @Published private(set) var historyEntries: [CycleHistoryEntry] = []
+    @Published private(set) var historyUpdatedAt: Date?
+    @Published private(set) var historyError: String?
+    @Published private(set) var isHistoryLoading = false
 
     private let previousService = SMAppService.daemon(plistName: "cn.com.betacat.battery.helper.plist")
     private var connection: NSXPCConnection?
@@ -292,6 +312,57 @@ final class HelperManager: ObservableObject {
         } onError: { [weak self] error in
             self?.message = error.localizedDescription
             completion?()
+        }
+    }
+
+    func refreshHistory() {
+        refreshRegistrationState()
+        guard state == .enabled, !requiresUpdate else {
+            historyEntries = []
+            historyUpdatedAt = Date()
+            return
+        }
+        isHistoryLoading = true
+        historyError = nil
+        proxy { proxy in
+            proxy.history { [weak self] payload in
+                Task { @MainActor in
+                    defer { self?.isHistoryLoading = false }
+                    guard let data = payload.data(using: .utf8),
+                          let entries = try? JSONDecoder().decode([CycleHistoryEntry].self, from: data)
+                    else {
+                        self?.historyError = AppLanguage.localized("history.error.read")
+                        return
+                    }
+                    self?.historyEntries = entries.sorted { $0.timestamp > $1.timestamp }
+                    self?.historyUpdatedAt = Date()
+                }
+            }
+        } onError: { [weak self] error in
+            self?.isHistoryLoading = false
+            self?.historyError = error.localizedDescription
+        }
+    }
+
+    func clearHistory() {
+        guard state == .enabled, !requiresUpdate else { return }
+        isHistoryLoading = true
+        historyError = nil
+        proxy { proxy in
+            proxy.clearHistory { [weak self] success, message in
+                Task { @MainActor in
+                    self?.isHistoryLoading = false
+                    if success {
+                        self?.historyEntries = []
+                        self?.historyUpdatedAt = Date()
+                    } else {
+                        self?.historyError = message
+                    }
+                }
+            }
+        } onError: { [weak self] error in
+            self?.isHistoryLoading = false
+            self?.historyError = error.localizedDescription
         }
     }
 

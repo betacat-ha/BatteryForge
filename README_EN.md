@@ -16,6 +16,7 @@ BatteryForge is a macOS battery cycling and stress-testing utility built with Sw
 - Keeps the cycle running in a privileged helper after the main window is closed or the app exits.
 - Prevents idle sleep during discharge and attempts to remain active when the lid is closed with an external display connected.
 - Persists cycle thresholds, workload level, GPU preference, and app language.
+- Persists cycle start, phase transition, completion, stop, and failure events.
 - Supports Simplified Chinese and English and detects helper updates.
 
 ## Requirements
