@@ -161,6 +161,156 @@
         }
       }
     },
+    "app_update.alert.available.message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ is available. You are using version %2$@." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ 已发布。当前版本为 %2$@。" } }
+      }
+    },
+    "app_update.alert.available.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update Available" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发现新版本" } }
+      }
+    },
+    "app_update.alert.failed.message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unable to check for updates: %@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法检查更新：%@" } }
+      }
+    },
+    "app_update.alert.failed.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update Check Failed" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "检查更新失败" } }
+      }
+    },
+    "app_update.alert.up_to_date.message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "BatteryForge %@ is the latest version." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "电池锻炉 %@ 已是最新版本。" } }
+      }
+    },
+    "app_update.alert.up_to_date.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You're Up to Date" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已是最新版本" } }
+      }
+    },
+    "app_update.check" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Check for Updates…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "检查更新…" } }
+      }
+    },
+    "app_update.channel.alpha" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Alpha" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Alpha" } }
+      }
+    },
+    "app_update.channel.alpha.detail" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Receive stable, beta, and experimental alpha releases" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "接收正式版、Beta 版及实验性的 Alpha 版" } }
+      }
+    },
+    "app_update.channel.beta" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Beta" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Beta" } }
+      }
+    },
+    "app_update.channel.beta.detail" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Receive stable and beta releases" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "接收正式版和 Beta 测试版" } }
+      }
+    },
+    "app_update.channel.label" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update Channel" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更新通道" } }
+      }
+    },
+    "app_update.channel.release" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Stable" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正式版" } }
+      }
+    },
+    "app_update.channel.release.detail" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Receive stable releases only" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仅接收稳定的正式版本" } }
+      }
+    },
+    "app_update.download" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Download Update" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "下载更新" } }
+      }
+    },
+    "app_update.error.release" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The release information is invalid." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发布信息无效。" } }
+      }
+    },
+    "app_update.error.response" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The update server returned an invalid response." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更新服务器返回了无效响应。" } }
+      }
+    },
+    "app_update.later" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Later" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "稍后" } }
+      }
+    },
+    "app_update.section" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Software Update" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "软件更新" } }
+      }
+    },
+    "app_update.status.available" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Version %@ is available" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "版本 %@ 可用" } }
+      }
+    },
+    "app_update.status.checking" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Checking for updates…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在检查更新…" } }
+      }
+    },
+    "app_update.status.failed" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update check failed: %@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "检查更新失败：%@" } }
+      }
+    },
+    "app_update.status.ready" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Check GitHub Releases on the %@ channel" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "从 GitHub Releases 检查%@通道" } }
+      }
+    },
+    "app_update.status.up_to_date" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "This is the latest version" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "当前已是最新版本" } }
+      }
+    },
+    "app_update.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "BatteryForge Updates" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "电池锻炉更新" } }
+      }
+    },
     "battery.capacity.current_full" : {
       "localizations" : {
         "en" : {
@@ -733,6 +883,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "读取中…"
+          }
+        }
+      }
+    },
+    "common.ok" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好"
           }
         }
       }

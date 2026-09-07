@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 struct AboutTabView: View {
+    @ObservedObject var updateManager: AppUpdateManager
     private let projectURL = URL(string: "https://github.com/betacat-ha/BatteryForge")!
     private let licenseURL = URL(string: "https://github.com/betacat-ha/BatteryForge/blob/main/LICENSE")!
     private let noticesURL = URL(string: "https://github.com/betacat-ha/BatteryForge/blob/main/THIRD_PARTY_NOTICES.md")!
@@ -61,6 +62,33 @@ struct AboutTabView: View {
                 .padding(.horizontal, 8)
             }
 
+            GroupBox("app_update.section") {
+                HStack(spacing: 12) {
+                    Image(systemName: updateIcon)
+                        .foregroundStyle(updateColor)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("app_update.title")
+                            .font(.headline)
+                        Text(updateManager.statusText)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if updateManager.state == .checking {
+                        ProgressView().controlSize(.small)
+                    } else if case .updateAvailable = updateManager.state {
+                        Button("app_update.download") { updateManager.openUpdate() }
+                            .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("app_update.check") {
+                            Task { await updateManager.checkForUpdates() }
+                        }
+                    }
+                }
+                .padding(8)
+            }
+
             Text("about.copyright")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -75,6 +103,24 @@ struct AboutTabView: View {
             version,
             build
         )
+    }
+
+    private var updateIcon: String {
+        switch updateManager.state {
+        case .updateAvailable: "arrow.down.circle.fill"
+        case .failed: "exclamationmark.triangle.fill"
+        case .upToDate: "checkmark.circle.fill"
+        default: "arrow.triangle.2.circlepath"
+        }
+    }
+
+    private var updateColor: Color {
+        switch updateManager.state {
+        case .updateAvailable: .accentColor
+        case .failed: .orange
+        case .upToDate: .green
+        default: .secondary
+        }
     }
 
     private func resourceLink(
@@ -104,7 +150,7 @@ struct AboutTabView: View {
 struct AboutTabView_Previews: PreviewProvider {
     static var previews: some View {
         ScrollView {
-            AboutTabView()
+            AboutTabView(updateManager: AppUpdateManager())
                 .padding(28)
                 .frame(maxWidth: 980)
         }

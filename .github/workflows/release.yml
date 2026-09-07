@@ -104,8 +104,10 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ steps.metadata.outputs.version }}
+          CHANNEL: ${{ steps.metadata.outputs.channel }}
         run: |
           set -euo pipefail
+          printf '%s\n' "$CHANNEL" > BatteryForge/ReleaseChannel.txt
           xcodebuild \
             -project BatteryForge.xcodeproj \
             -scheme BatteryForge \

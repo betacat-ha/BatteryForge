@@ -11,6 +11,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var monitor: BatteryMonitor
     @StateObject private var cycle: CycleController
+    @ObservedObject private var updateManager: AppUpdateManager
     @State private var selectedPage: SidebarPage? = .overview
     @AppStorage("cycle.lowerLimit") private var lowerLimit = 25.0
     @AppStorage("cycle.upperLimit") private var upperLimit = 80.0
@@ -21,10 +22,11 @@ struct ContentView: View {
     @AppStorage("workload.thermalThreshold") private var thermalThreshold = 45.0
     @AppStorage(AppLanguage.storageKey) private var appLanguageRawValue = AppLanguage.system.rawValue
 
-    init(monitor: BatteryMonitor? = nil) {
+    init(monitor: BatteryMonitor? = nil, updateManager: AppUpdateManager? = nil) {
         let batteryMonitor = monitor ?? BatteryMonitor()
         _monitor = StateObject(wrappedValue: batteryMonitor)
         _cycle = StateObject(wrappedValue: CycleController(monitor: batteryMonitor))
+        self.updateManager = updateManager ?? AppUpdateManager()
     }
 
     var body: some View {
@@ -61,6 +63,17 @@ struct ContentView: View {
         .frame(minWidth: 900, minHeight: 680)
         .environment(\.locale, appLanguage.locale)
         .onAppear(perform: normalizeSavedSettings)
+        .task { await updateManager.checkAutomaticallyIfNeeded() }
+        .alert(updateManager.alertTitle, isPresented: $updateManager.isUpdateAlertPresented) {
+            if case .updateAvailable = updateManager.state {
+                Button("app_update.download") { updateManager.openUpdate() }
+                Button("app_update.later", role: .cancel) {}
+            } else {
+                Button("common.ok", role: .cancel) {}
+            }
+        } message: {
+            Text(updateManager.alertMessage)
+        }
         .onChange(of: lowerLimit) { _, newValue in
             upperLimit = max(upperLimit, newValue + 10)
         }
@@ -91,6 +104,7 @@ struct ContentView: View {
             SettingsTabView(
                 cycle: cycle,
                 helper: cycle.helper,
+                updateManager: updateManager,
                 lowerLimit: $lowerLimit,
                 upperLimit: $upperLimit,
                 workloadEnabled: $workloadEnabled,
@@ -101,7 +115,7 @@ struct ContentView: View {
                 languageRawValue: $appLanguageRawValue
             )
         case .about:
-            AboutTabView()
+            AboutTabView(updateManager: updateManager)
         }
     }
 
