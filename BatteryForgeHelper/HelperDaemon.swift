@@ -11,6 +11,8 @@ private struct CycleConfiguration: Codable, Equatable {
     var highLoad = true
     var stressWorkers = max(ProcessInfo.processInfo.activeProcessorCount / 2, 1)
     var gpuLoad = true
+    var thermalProtectionEnabled = true
+    var thermalThreshold = 45.0
     var completedCycles = 0
     var phase = "idle"
     var message = ""
@@ -18,7 +20,8 @@ private struct CycleConfiguration: Codable, Equatable {
     var sleepWasDisabledBeforeDischarge = false
 
     private enum CodingKeys: String, CodingKey {
-        case enabled, lower, upper, highLoad, stressWorkers, gpuLoad, completedCycles
+        case enabled, lower, upper, highLoad, stressWorkers, gpuLoad
+        case thermalProtectionEnabled, thermalThreshold, completedCycles
         case phase, message, sleepOverrideActive, sleepWasDisabledBeforeDischarge
     }
 
@@ -33,6 +36,11 @@ private struct CycleConfiguration: Codable, Equatable {
         stressWorkers = try values.decodeIfPresent(Int.self, forKey: .stressWorkers)
             ?? max(ProcessInfo.processInfo.activeProcessorCount / 2, 1)
         gpuLoad = try values.decodeIfPresent(Bool.self, forKey: .gpuLoad) ?? true
+        thermalProtectionEnabled = try values.decodeIfPresent(
+            Bool.self,
+            forKey: .thermalProtectionEnabled
+        ) ?? true
+        thermalThreshold = try values.decodeIfPresent(Double.self, forKey: .thermalThreshold) ?? 45
         completedCycles = try values.decodeIfPresent(Int.self, forKey: .completedCycles) ?? 0
         phase = try values.decodeIfPresent(String.self, forKey: .phase) ?? "idle"
         message = try values.decodeIfPresent(String.self, forKey: .message) ?? ""
@@ -104,10 +112,17 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
         highLoad: Bool,
         stressWorkers: Int,
         gpuLoad: Bool,
+        thermalProtectionEnabled: Bool,
+        thermalThreshold: Double,
         reply: @escaping (Bool, String) -> Void
     ) {
         DispatchQueue.main.async {
-            guard lower >= 10, upper <= 100, upper - lower >= 10 else {
+            guard lower >= 10,
+                  upper <= 100,
+                  upper - lower >= 10,
+                  thermalThreshold.isFinite,
+                  (35...60).contains(thermalThreshold)
+            else {
                 reply(false, HelperMessagePayload.encode("helper.runtime.invalid_thresholds"))
                 return
             }
@@ -117,6 +132,8 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
             self.configuration.highLoad = highLoad
             self.configuration.stressWorkers = min(max(stressWorkers, 1), ProcessInfo.processInfo.activeProcessorCount)
             self.configuration.gpuLoad = gpuLoad
+            self.configuration.thermalProtectionEnabled = thermalProtectionEnabled
+            self.configuration.thermalThreshold = thermalThreshold
             self.configuration.completedCycles = 0
             self.configuration.phase = "preparing"
             self.configuration.message = HelperMessagePayload.encode("helper.runtime.started")
@@ -216,15 +233,6 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
             return
         }
 
-        let thermal = ProcessInfo.processInfo.thermalState
-        if thermal == .serious || thermal == .critical {
-            failSafely(
-                HelperMessagePayload.encode("helper.runtime.thermal_stop"),
-                batteryPercent: battery.percent
-            )
-            return
-        }
-
         let previousPhase = configuration.phase
         let targetPhase: String
         if battery.percent <= configuration.lower {
@@ -275,7 +283,9 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
         } else {
             do {
                 if battery.adapterPresent { try applyIfNeeded(.discharge) }
-                if configuration.highLoad {
+                let temperatureTooHigh = configuration.thermalProtectionEnabled
+                    && battery.temperature.map { $0 >= configuration.thermalThreshold } == true
+                if configuration.highLoad && !temperatureTooHigh {
                     stressWorker.start(
                         workerCount: configuration.stressWorkers,
                         gpuEnabled: configuration.gpuLoad
@@ -284,7 +294,12 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
                     stressWorker.stop()
                 }
                 configuration.phase = "discharging"
-                if stressWorker.isRunning {
+                if temperatureTooHigh, let temperature = battery.temperature {
+                    configuration.message = HelperMessagePayload.encode(
+                        "helper.runtime.thermal_paused",
+                        [String(format: "%.1f", temperature), Int(configuration.thermalThreshold)]
+                    )
+                } else if stressWorker.isRunning {
                     let key = stressWorker.isGPURunning
                         ? "helper.runtime.discharging_cpu_gpu"
                         : "helper.runtime.discharging_cpu"

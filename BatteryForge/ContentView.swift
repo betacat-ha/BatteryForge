@@ -17,6 +17,8 @@ struct ContentView: View {
     @AppStorage("workload.enabled") private var workloadEnabled = true
     @AppStorage("workload.level") private var workloadLevelRaw = WorkloadLevel.balanced.rawValue
     @AppStorage("workload.gpuEnabled") private var gpuLoadEnabled = true
+    @AppStorage("workload.thermalProtectionEnabled") private var thermalProtectionEnabled = true
+    @AppStorage("workload.thermalThreshold") private var thermalThreshold = 45.0
     @AppStorage(AppLanguage.storageKey) private var appLanguageRawValue = AppLanguage.system.rawValue
 
     init(monitor: BatteryMonitor? = nil) {
@@ -79,7 +81,9 @@ struct ContentView: View {
                 upperLimit: upperLimit,
                 workloadEnabled: workloadEnabled,
                 stressWorkers: stressWorkerCount,
-                gpuLoadEnabled: effectiveGPULoadEnabled
+                gpuLoadEnabled: effectiveGPULoadEnabled,
+                thermalProtectionEnabled: thermalProtectionEnabled,
+                thermalThreshold: thermalThreshold
             )
         case .history:
             HistoryTabView(helper: cycle.helper)
@@ -92,6 +96,8 @@ struct ContentView: View {
                 workloadEnabled: $workloadEnabled,
                 workloadLevelRaw: $workloadLevelRaw,
                 gpuLoadEnabled: $gpuLoadEnabled,
+                thermalProtectionEnabled: $thermalProtectionEnabled,
+                thermalThreshold: $thermalThreshold,
                 languageRawValue: $appLanguageRawValue
             )
         case .about:
@@ -111,6 +117,8 @@ struct ContentView: View {
         if WorkloadLevel(rawValue: workloadLevelRaw) == nil {
             workloadLevelRaw = WorkloadLevel.balanced.rawValue
         }
+        if !thermalThreshold.isFinite { thermalThreshold = 45 }
+        thermalThreshold = min(max(thermalThreshold, 35), 60)
     }
 
     private var workloadLevel: WorkloadLevel {

@@ -8,6 +8,8 @@ struct SettingsTabView: View {
     @Binding var workloadEnabled: Bool
     @Binding var workloadLevelRaw: Int
     @Binding var gpuLoadEnabled: Bool
+    @Binding var thermalProtectionEnabled: Bool
+    @Binding var thermalThreshold: Double
     @Binding var languageRawValue: String
 
     var body: some View {
@@ -26,7 +28,9 @@ struct SettingsTabView: View {
                 cycle: cycle,
                 workloadEnabled: $workloadEnabled,
                 workloadLevelRaw: $workloadLevelRaw,
-                gpuLoadEnabled: $gpuLoadEnabled
+                gpuLoadEnabled: $gpuLoadEnabled,
+                thermalProtectionEnabled: $thermalProtectionEnabled,
+                thermalThreshold: $thermalThreshold
             )
             languageCard
         }

@@ -5,7 +5,7 @@ import Combine
 enum HelperConstants {
     nonisolated static let machServiceName = "com.betacat.batteryforge.helper"
     nonisolated static let plistName = "com.betacat.batteryforge.helper.plist"
-    nonisolated static let bundledVersion = "0.0.3"
+    nonisolated static let bundledVersion = "0.0.4"
     nonisolated static let versionFilePath = "/Library/Application Support/BatteryForge/helper-version"
 }
 
@@ -17,6 +17,8 @@ protocol BatteryHelperProtocol {
         highLoad: Bool,
         stressWorkers: Int,
         gpuLoad: Bool,
+        thermalProtectionEnabled: Bool,
+        thermalThreshold: Double,
         reply: @escaping (Bool, String) -> Void
     )
     func stop(reply: @escaping (Bool, String) -> Void)
@@ -71,8 +73,10 @@ func localizedHelperMessage(_ rawValue: String) -> String {
         format = AppLanguage.localized("helper.runtime.stopped")
     case "helper.runtime.battery_unavailable":
         format = AppLanguage.localized("helper.runtime.battery_unavailable")
-    case "helper.runtime.thermal_stop":
-        format = AppLanguage.localized("helper.runtime.thermal_stop")
+    case "helper.runtime.thermal_paused":
+        guard payload.arguments.count == 2 else { return rawValue }
+        format = AppLanguage.localized("helper.runtime.thermal_paused")
+        return String.localizedStringWithFormat(format, payload.arguments[0], payload.arguments[1])
     case "helper.runtime.power_control_failed":
         format = AppLanguage.localized("helper.runtime.power_control_failed")
     case "helper.runtime.restore_failed":
@@ -250,6 +254,8 @@ final class HelperManager: ObservableObject {
         highLoad: Bool,
         stressWorkers: Int,
         gpuLoad: Bool,
+        thermalProtectionEnabled: Bool,
+        thermalThreshold: Double,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
         refreshRegistrationState()
@@ -263,7 +269,9 @@ final class HelperManager: ObservableObject {
                 upper: upper,
                 highLoad: highLoad,
                 stressWorkers: stressWorkers,
-                gpuLoad: gpuLoad
+                gpuLoad: gpuLoad,
+                thermalProtectionEnabled: thermalProtectionEnabled,
+                thermalThreshold: thermalThreshold
             ) { [weak self] success, message in
                 Task { @MainActor in
                     let localizedMessage = localizedHelperMessage(message)

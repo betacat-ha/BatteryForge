@@ -56,7 +56,15 @@ final class CycleController: ObservableObject {
         synchronizeWithHelper()
     }
 
-    func start(lower: Int, upper: Int, useStress: Bool, stressWorkers: Int, useGPU: Bool) {
+    func start(
+        lower: Int,
+        upper: Int,
+        useStress: Bool,
+        stressWorkers: Int,
+        useGPU: Bool,
+        thermalProtectionEnabled: Bool,
+        thermalThreshold: Double
+    ) {
         guard !isRunning else { return }
         guard lower >= 10, upper <= 100, upper - lower >= 10 else {
             phase = .failed(AppLanguage.localized("cycle.error.threshold_gap"))
@@ -69,6 +77,12 @@ final class CycleController: ObservableObject {
             statusMessage = helper.message.isEmpty ? AppLanguage.localized("helper.status.approve_then_retry") : helper.message
             return
         }
+        guard !helper.requiresUpdate else {
+            let updateMessage = helper.updateDescription ?? AppLanguage.localized("helper.update.available")
+            phase = .failed(updateMessage)
+            statusMessage = updateMessage
+            return
+        }
 
         phase = .preparing
         statusMessage = AppLanguage.localized("cycle.status.handing_to_helper")
@@ -77,7 +91,9 @@ final class CycleController: ObservableObject {
             upper: upper,
             highLoad: useStress,
             stressWorkers: stressWorkers,
-            gpuLoad: useGPU
+            gpuLoad: useGPU,
+            thermalProtectionEnabled: thermalProtectionEnabled,
+            thermalThreshold: thermalThreshold
         ) { [weak self] result in
             switch result {
             case .success: self?.synchronizeWithHelper()

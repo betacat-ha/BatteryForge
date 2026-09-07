@@ -6,6 +6,8 @@ struct WorkloadSettingsTabView: View {
     @Binding var workloadEnabled: Bool
     @Binding var workloadLevelRaw: Int
     @Binding var gpuLoadEnabled: Bool
+    @Binding var thermalProtectionEnabled: Bool
+    @Binding var thermalThreshold: Double
 
     var body: some View {
         workloadCard
@@ -45,6 +47,16 @@ struct WorkloadSettingsTabView: View {
                         Text("workload.gpu.unavailable")
                             .foregroundStyle(.secondary)
                     }
+                }
+                Divider()
+                Toggle("workload.thermal_protection.enable", isOn: $thermalProtectionEnabled)
+                    .disabled(!workloadEnabled || cycle.isRunning)
+                LabeledContent("workload.thermal_protection.threshold") {
+                    Stepper(value: $thermalThreshold, in: 35...60, step: 1) {
+                        Text(verbatim: "\(Int(thermalThreshold)) °C")
+                            .monospacedDigit()
+                    }
+                    .disabled(!workloadEnabled || !thermalProtectionEnabled || cycle.isRunning)
                 }
                 Label("workload.safety.note", systemImage: "thermometer.medium")
                     .font(.callout)

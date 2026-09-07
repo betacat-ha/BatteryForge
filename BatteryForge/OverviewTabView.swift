@@ -8,6 +8,8 @@ struct OverviewTabView: View {
     let workloadEnabled: Bool
     let stressWorkers: Int
     let gpuLoadEnabled: Bool
+    let thermalProtectionEnabled: Bool
+    let thermalThreshold: Double
 
     var body: some View {
         VStack(spacing: 20) {
@@ -64,7 +66,9 @@ struct OverviewTabView: View {
                             upper: Int(upperLimit),
                             useStress: workloadEnabled,
                             stressWorkers: stressWorkers,
-                            useGPU: gpuLoadEnabled
+                            useGPU: gpuLoadEnabled,
+                            thermalProtectionEnabled: thermalProtectionEnabled,
+                            thermalThreshold: thermalThreshold
                         )
                     }
                     .buttonStyle(.borderedProminent)

@@ -1,7 +1,7 @@
 import Foundation
 
 let helperMachServiceName = "com.betacat.batteryforge.helper"
-let helperVersion = "0.0.3"
+let helperVersion = "0.0.4"
 
 struct HelperMessagePayload: Codable {
     let key: String
@@ -36,6 +36,8 @@ protocol BatteryHelperProtocol {
         highLoad: Bool,
         stressWorkers: Int,
         gpuLoad: Bool,
+        thermalProtectionEnabled: Bool,
+        thermalThreshold: Double,
         reply: @escaping (Bool, String) -> Void
     )
     func stop(reply: @escaping (Bool, String) -> Void)

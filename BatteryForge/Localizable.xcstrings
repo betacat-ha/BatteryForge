@@ -1509,18 +1509,18 @@
         }
       }
     },
-    "helper.runtime.thermal_stop" : {
+    "helper.runtime.thermal_paused" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System temperature is too high; cycle stopped safely"
+            "value" : "Battery temperature is %@ °C (limit %@ °C); high-load task paused while the cycle continues"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "系统温度过高，循环已安全停止"
+            "value" : "电池温度 %@ °C（阈值 %@ °C），高负载任务已暂停，循环继续运行"
           }
         }
       }
@@ -2588,13 +2588,45 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The task runs only while discharging and stops automatically when charging begins, the cycle stops, or the temperature becomes too high"
+            "value" : "The task runs only while discharging. Thermal protection pauses it at the configured temperature without stopping the cycle, then resumes it after the temperature drops"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "任务仅在放电阶段运行；开始充电、停止循环或温度过高时会自动停止"
+            "value" : "任务仅在放电阶段运行；达到设定温度时高温保护会暂停负载但保持循环，温度降低后自动恢复"
+          }
+        }
+      }
+    },
+    "workload.thermal_protection.enable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable high-temperature protection"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用高温保护"
+          }
+        }
+      }
+    },
+    "workload.thermal_protection.threshold" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temperature Threshold"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "温度阈值"
           }
         }
       }
