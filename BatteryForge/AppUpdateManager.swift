@@ -59,8 +59,12 @@ final class AppUpdateManager: ObservableObject {
         didSet {
             UserDefaults.standard.set(channel.rawValue, forKey: AppUpdateChannel.storageKey)
             guard channel != oldValue else { return }
-            state = .idle
-            hasCheckedAutomatically = false
+            let selectedChannel = channel
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.channel == selectedChannel else { return }
+                self.state = .idle
+                self.hasCheckedAutomatically = false
+            }
         }
     }
 
