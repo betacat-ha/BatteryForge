@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WorkloadSettingsTabView: View {
     @ObservedObject var cycle: CycleController
+    @ObservedObject var helper: HelperManager
     @Binding var workloadEnabled: Bool
     @Binding var workloadLevelRaw: Int
     @Binding var gpuLoadEnabled: Bool
@@ -18,7 +19,7 @@ struct WorkloadSettingsTabView: View {
             VStack(alignment: .leading, spacing: 18) {
                 Toggle("workload.enable_during_discharge", isOn: $workloadEnabled)
                     .font(.headline)
-                    .disabled(cycle.isRunning)
+                    .disabled(controlsAreLocked)
                 Divider()
                 LabeledContent("workload.intensity") {
                     Picker("workload.intensity", selection: $workloadLevelRaw) {
@@ -29,7 +30,7 @@ struct WorkloadSettingsTabView: View {
                     .labelsHidden()
                     .pickerStyle(.segmented)
                     .frame(width: 320)
-                    .disabled(!workloadEnabled || cycle.isRunning)
+                    .disabled(!workloadEnabled || controlsAreLocked)
                 }
                 LabeledContent("workload.cpu_workers") {
                     Text(verbatim: "\(stressWorkerCount) / \(processorCount)")
@@ -39,7 +40,7 @@ struct WorkloadSettingsTabView: View {
                     .foregroundStyle(.secondary)
                 Divider()
                 Toggle("workload.gpu.enable", isOn: $gpuLoadEnabled)
-                    .disabled(!workloadEnabled || cycle.isRunning || gpuName == nil)
+                    .disabled(!workloadEnabled || controlsAreLocked || gpuName == nil)
                 LabeledContent("workload.gpu") {
                     if let gpuName {
                         Text(gpuName)
@@ -50,19 +51,23 @@ struct WorkloadSettingsTabView: View {
                 }
                 Divider()
                 Toggle("workload.thermal_protection.enable", isOn: $thermalProtectionEnabled)
-                    .disabled(!workloadEnabled || cycle.isRunning)
+                    .disabled(!workloadEnabled || controlsAreLocked)
                 LabeledContent("workload.thermal_protection.threshold") {
                     Stepper(value: $thermalThreshold, in: 35...60, step: 1) {
                         Text(verbatim: "\(Int(thermalThreshold)) °C")
                             .monospacedDigit()
                     }
-                    .disabled(!workloadEnabled || !thermalProtectionEnabled || cycle.isRunning)
+                    .disabled(!workloadEnabled || !thermalProtectionEnabled || controlsAreLocked)
                 }
                 Label("workload.safety.note", systemImage: "thermometer.medium")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                if cycle.isRunning {
+                if cycle.canStopCycle {
                     Label("workload.locked_during_cycle", systemImage: "lock.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                } else if helper.requiresUpdate {
+                    Label("helper.update.read_only", systemImage: "lock.fill")
                         .font(.callout)
                         .foregroundStyle(.orange)
                 }
@@ -74,6 +79,10 @@ struct WorkloadSettingsTabView: View {
 
     private var workloadLevel: WorkloadLevel {
         WorkloadLevel(rawValue: workloadLevelRaw) ?? .balanced
+    }
+
+    private var controlsAreLocked: Bool {
+        cycle.canStopCycle || helper.requiresUpdate
     }
 
     private var processorCount: Int {

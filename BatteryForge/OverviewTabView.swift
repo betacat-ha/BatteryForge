@@ -3,6 +3,7 @@ import SwiftUI
 struct OverviewTabView: View {
     @ObservedObject var monitor: BatteryMonitor
     @ObservedObject var cycle: CycleController
+    @ObservedObject var helper: HelperManager
     let lowerLimit: Double
     let upperLimit: Double
     let workloadEnabled: Bool
@@ -54,7 +55,7 @@ struct OverviewTabView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if cycle.isRunning {
+                if cycle.canStopCycle {
                     Button("cycle.action.stop", role: .destructive) {
                         cycle.stop()
                     }
@@ -72,6 +73,12 @@ struct OverviewTabView: View {
                         )
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(helper.requiresUpdate)
+                    .help(
+                        helper.requiresUpdate
+                            ? Text("helper.update.read_only")
+                            : Text("cycle.action.start")
+                    )
                 }
             }
             .padding(8)

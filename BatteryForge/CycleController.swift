@@ -47,6 +47,10 @@ final class CycleController: ObservableObject {
         }
     }
 
+    var canStopCycle: Bool {
+        isRunning || helper.isCycleRunning
+    }
+
     private var pollingTimer: AnyCancellable?
 
     init(monitor: BatteryMonitor) {
@@ -105,7 +109,7 @@ final class CycleController: ObservableObject {
     }
 
     func stop() {
-        guard isRunning || helper.isCycleRunning else {
+        guard canStopCycle else {
             if case .failed = phase {
                 phase = .idle
                 statusMessage = AppLanguage.localized("cycle.status.ready")
@@ -128,6 +132,9 @@ final class CycleController: ObservableObject {
     }
 
     func installHelper() {
+        // An outdated helper stays read-only while a cycle is active. The user
+        // must explicitly stop that cycle before replacing the helper.
+        guard !helper.requiresUpdate || !canStopCycle else { return }
         helper.install()
         synchronizeWithHelper()
     }

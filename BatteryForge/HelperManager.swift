@@ -263,6 +263,12 @@ final class HelperManager: ObservableObject {
             completion(.failure(HelperManagerError.notEnabled))
             return
         }
+        guard !requiresUpdate else {
+            completion(.failure(HelperManagerError.helper(
+                updateDescription ?? AppLanguage.localized("helper.update.available")
+            )))
+            return
+        }
         proxy { proxy in
             proxy.configure(
                 lower: lower,

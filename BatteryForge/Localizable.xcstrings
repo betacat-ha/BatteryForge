@@ -1867,6 +1867,22 @@
         }
       }
     },
+    "helper.update.read_only" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The helper is read-only until it is updated. You can stop an active cycle, but you cannot start a new one or change its settings."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新完成前，后台服务处于只读模式。您可以停止正在运行的循环，但不能启动新循环或更改其设置。"
+          }
+        }
+      }
+    },
     "helper.version.current" : {
       "localizations" : {
         "en" : {

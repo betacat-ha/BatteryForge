@@ -90,6 +90,7 @@ struct ContentView: View {
             OverviewTabView(
                 monitor: monitor,
                 cycle: cycle,
+                helper: cycle.helper,
                 lowerLimit: lowerLimit,
                 upperLimit: upperLimit,
                 workloadEnabled: workloadEnabled,

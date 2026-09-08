@@ -69,6 +69,9 @@ struct CycleSettingsTabView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                Text("helper.update.read_only")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             Button(helperUpdateTitle) {
@@ -76,6 +79,7 @@ struct CycleSettingsTabView: View {
             }
                 .buttonStyle(.borderedProminent)
                 .tint(.orange)
+                .disabled(cycle.canStopCycle)
         }
         .padding(10)
         .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
@@ -87,7 +91,7 @@ struct CycleSettingsTabView: View {
                 HStack {
                     Slider(value: $lowerLimit, in: 10...70, step: 5)
                         .frame(width: 180)
-                        .disabled(cycle.isRunning)
+                        .disabled(cycle.canStopCycle || helper.requiresUpdate)
                     Text(verbatim: "\(Int(lowerLimit))%")
                         .monospacedDigit()
                         .frame(width: 38, alignment: .trailing)
@@ -97,7 +101,7 @@ struct CycleSettingsTabView: View {
                 HStack {
                     Slider(value: $upperLimit, in: max(lowerLimit + 10, 40)...100, step: 5)
                         .frame(width: 180)
-                        .disabled(cycle.isRunning)
+                        .disabled(cycle.canStopCycle || helper.requiresUpdate)
                     Text(verbatim: "\(Int(upperLimit))%")
                         .monospacedDigit()
                         .frame(width: 38, alignment: .trailing)
@@ -116,9 +120,7 @@ struct CycleSettingsTabView: View {
     }
 
     private var helperUpdateTitle: String {
-        cycle.isRunning
-            ? AppLanguage.localized("helper.action.reinstall_and_stop")
-            : AppLanguage.localized("helper.action.update")
+        AppLanguage.localized("helper.action.update")
     }
 
     private var helperReinstallTitle: String {

@@ -27,6 +27,7 @@ struct SettingsTabView: View {
             )
             WorkloadSettingsTabView(
                 cycle: cycle,
+                helper: helper,
                 workloadEnabled: $workloadEnabled,
                 workloadLevelRaw: $workloadLevelRaw,
                 gpuLoadEnabled: $gpuLoadEnabled,
