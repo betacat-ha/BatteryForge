@@ -129,8 +129,9 @@ jobs:
         run: |
           set -euo pipefail
           app="$RUNNER_TEMP/DerivedData/Build/Products/Release/BatteryForge.app"
-          artifact="BatteryForge-${TAG}-macOS.zip"
+          artifact="BatteryForge-${TAG}-macOS.dmg"
           output="$RUNNER_TEMP/release"
+          staging="$RUNNER_TEMP/dmg"
 
           test -d "$app"
           test -f "$app/Contents/Resources/AppIcon.icns"
@@ -148,7 +149,16 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$app"
 
           mkdir -p "$output"
-          ditto -c -k --sequesterRsrc --keepParent "$app" "$output/$artifact"
+          mkdir -p "$staging"
+          ditto "$app" "$staging/BatteryForge.app"
+          ln -s /Applications "$staging/Applications"
+          hdiutil create \
+            -volname "BatteryForge" \
+            -srcfolder "$staging" \
+            -ov \
+            -format UDZO \
+            "$output/$artifact"
+          hdiutil verify "$output/$artifact"
           (
             cd "$output"
             shasum -a 256 "$artifact" > "$artifact.sha256"

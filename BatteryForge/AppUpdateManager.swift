@@ -129,13 +129,16 @@ final class AppUpdateManager: ObservableObject {
             else { throw UpdateError.invalidRelease }
 
             if candidate.version > installedVersion {
+                let downloadAsset = payload.assets.first {
+                    $0.name.localizedCaseInsensitiveContains("macOS.dmg")
+                } ?? payload.assets.first {
+                    $0.name.localizedCaseInsensitiveContains("macOS.zip")
+                }
                 let release = Release(
                     version: payload.tagName.droppingLeadingV,
                     name: payload.name ?? payload.tagName,
                     pageURL: pageURL,
-                    downloadURL: payload.assets
-                        .first(where: { $0.name.localizedCaseInsensitiveContains("macOS.zip") })
-                        .flatMap { URL(string: $0.downloadURL) }
+                    downloadURL: downloadAsset.flatMap { URL(string: $0.downloadURL) }
                 )
                 state = .updateAvailable(release)
                 isUpdateAlertPresented = true
