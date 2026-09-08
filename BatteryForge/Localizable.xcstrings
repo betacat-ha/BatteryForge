@@ -1182,13 +1182,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System sleep, including closed-display sleep, is prevented while discharging and restored when charging resumes or the cycle stops"
+            "value" : "System sleep, including closed-display sleep, is prevented throughout the cycle and restored when the cycle stops"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "放电阶段会阻止系统睡眠（包括合盖睡眠），恢复充电或停止循环后自动还原"
+            "value" : "整个循环期间会阻止系统睡眠（包括合盖睡眠），停止循环后自动还原"
           }
         }
       }

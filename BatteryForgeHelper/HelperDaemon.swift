@@ -232,6 +232,16 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
             failSafely(HelperMessagePayload.encode("helper.runtime.battery_unavailable"))
             return
         }
+        do {
+            try enableSleepPrevention()
+        } catch {
+            NSLog("BatteryForge could not enable cycle sleep prevention: \(error)")
+            failSafely(
+                HelperMessagePayload.encode("helper.runtime.power_control_failed"),
+                batteryPercent: battery.percent
+            )
+            return
+        }
 
         let previousPhase = configuration.phase
         let targetPhase: String
@@ -335,7 +345,9 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
     private func applyIfNeeded(_ action: PowerAction) throws {
         guard appliedAction != action else { return }
         if action == .normal {
-            // Restore AC first, then permit sleep again.
+            // Keep the sleep override for the full cycle. macOS may take a
+            // moment to recognize restored adapter input, and permitting
+            // closed-display sleep in that window can blank the display.
             do {
                 try DirectPowerControl.apply(.normal)
             } catch {
@@ -344,12 +356,8 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
                 try? restoreSleepPolicy()
                 throw error
             }
-            try restoreSleepPolicy()
             appliedAction = .normal
         } else {
-            // Once adapter input is cut, macOS considers the machine to be on
-            // battery and clamshell mode would force sleep. Block it first.
-            try enableSleepPrevention()
             do {
                 try DirectPowerControl.apply(.discharge)
                 appliedAction = .discharge
@@ -631,6 +639,7 @@ private final class HelperStressWorker {
 
 private final class HelperGPUWorker {
     private var task: Task<Void, Never>?
+    private var completionGroup: DispatchGroup?
     var isRunning: Bool { task != nil }
 
     func start() {
@@ -656,7 +665,11 @@ private final class HelperGPUWorker {
                 values[index] = SIMD4(seed, seed + 0.1, seed + 0.2, seed + 0.3)
             }
 
+            let completionGroup = DispatchGroup()
+            completionGroup.enter()
+            self.completionGroup = completionGroup
             task = Task.detached(priority: .utility) {
+                defer { completionGroup.leave() }
                 while !Task.isCancelled {
                     autoreleasepool {
                         guard let commandBuffer = commandQueue.makeCommandBuffer(),
@@ -687,8 +700,14 @@ private final class HelperGPUWorker {
     }
 
     func stop() {
-        task?.cancel()
+        guard let runningTask = task else { return }
+        let completionGroup = completionGroup
+        runningTask.cancel()
         task = nil
+        self.completionGroup = nil
+        if completionGroup?.wait(timeout: .now() + 2) == .timedOut {
+            NSLog("Battery helper timed out while draining GPU workload")
+        }
     }
 
     private static let shaderSource = """

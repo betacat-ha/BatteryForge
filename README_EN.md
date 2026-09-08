@@ -14,7 +14,7 @@ BatteryForge is a macOS battery cycling and stress-testing utility built with Sw
 - Resumes charging below the lower threshold and stops charging above the upper threshold while switching to battery power.
 - Runs multithreaded CPU and Metal GPU workloads concurrently during discharge.
 - Keeps the cycle running in a privileged helper after the main window is closed or the app exits.
-- Prevents idle sleep during discharge and attempts to remain active when the lid is closed with an external display connected.
+- Prevents idle sleep throughout the cycle and attempts to remain active when the lid is closed with an external display connected.
 - Persists cycle thresholds, workload level, GPU preference, and app language.
 - Persists cycle start, phase transition, completion, stop, and failure events.
 - Supports Simplified Chinese and English and detects helper updates.
