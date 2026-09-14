@@ -71,7 +71,12 @@ final class CycleController: ObservableObject {
     ) {
         guard !isRunning else { return }
         guard lower >= 10, upper <= 100, upper - lower >= 10 else {
-            phase = .failed(AppLanguage.localized("cycle.error.threshold_gap"))
+            phase = .failed(
+                String.localizedStringWithFormat(
+                    AppLanguage.localized("cycle.error.threshold_gap"),
+                    AppLanguage.localizedPercent(10)
+                )
+            )
             statusMessage = AppLanguage.localized("cycle.status.adjust_thresholds")
             return
         }

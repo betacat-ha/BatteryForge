@@ -54,6 +54,11 @@ private struct HelperSemanticVersion: Comparable {
     }
 }
 
+private func localizedPercent(_ rawValue: String) -> String {
+    guard let value = Double(rawValue) else { return rawValue }
+    return AppLanguage.localizedPercent(value)
+}
+
 func localizedHelperMessage(_ rawValue: String) -> String {
     guard let data = rawValue.data(using: .utf8),
           let payload = try? JSONDecoder().decode(HelperMessagePayload.self, from: data)
@@ -65,6 +70,7 @@ func localizedHelperMessage(_ rawValue: String) -> String {
         format = AppLanguage.localized("helper.runtime.updated_and_stopped")
     case "helper.runtime.invalid_thresholds":
         format = AppLanguage.localized("helper.runtime.invalid_thresholds")
+        return String.localizedStringWithFormat(format, AppLanguage.localizedPercent(10))
     case "helper.runtime.started":
         format = AppLanguage.localized("helper.runtime.started")
     case "helper.runtime.stopping":
@@ -84,22 +90,30 @@ func localizedHelperMessage(_ rawValue: String) -> String {
     case "helper.runtime.charging":
         guard payload.arguments.count == 2 else { return rawValue }
         format = AppLanguage.localized("helper.runtime.charging")
-        return String.localizedStringWithFormat(format, payload.arguments[0], payload.arguments[1])
+        return String.localizedStringWithFormat(
+            format,
+            localizedPercent(payload.arguments[0]),
+            localizedPercent(payload.arguments[1])
+        )
     case "helper.runtime.waiting_for_power":
         guard payload.arguments.count == 1 else { return rawValue }
         format = AppLanguage.localized("helper.runtime.waiting_for_power")
-        return String.localizedStringWithFormat(format, payload.arguments[0])
+        return String.localizedStringWithFormat(format, localizedPercent(payload.arguments[0]))
     case "helper.runtime.discharging":
         guard payload.arguments.count == 2 else { return rawValue }
         format = AppLanguage.localized("helper.runtime.discharging")
-        return String.localizedStringWithFormat(format, payload.arguments[0], payload.arguments[1])
+        return String.localizedStringWithFormat(
+            format,
+            localizedPercent(payload.arguments[0]),
+            localizedPercent(payload.arguments[1])
+        )
     case "helper.runtime.discharging_cpu":
         guard payload.arguments.count == 3 else { return rawValue }
         format = AppLanguage.localized("helper.runtime.discharging_cpu")
         return String.localizedStringWithFormat(
             format,
-            payload.arguments[0],
-            payload.arguments[1],
+            localizedPercent(payload.arguments[0]),
+            localizedPercent(payload.arguments[1]),
             payload.arguments[2]
         )
     case "helper.runtime.discharging_cpu_gpu":
@@ -107,8 +121,8 @@ func localizedHelperMessage(_ rawValue: String) -> String {
         format = AppLanguage.localized("helper.runtime.discharging_cpu_gpu")
         return String.localizedStringWithFormat(
             format,
-            payload.arguments[0],
-            payload.arguments[1],
+            localizedPercent(payload.arguments[0]),
+            localizedPercent(payload.arguments[1]),
             payload.arguments[2]
         )
     default:

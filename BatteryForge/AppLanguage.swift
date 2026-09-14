@@ -34,6 +34,12 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         String(localized: key, bundle: currentBundle, locale: currentLocale)
     }
 
+    nonisolated static func localizedPercent(_ value: Double) -> String {
+        (value / 100).formatted(
+            .percent.precision(.fractionLength(0)).locale(currentLocale)
+        )
+    }
+
     nonisolated private static var current: AppLanguage {
         let storedValue = UserDefaults.standard.string(forKey: storageKey) ?? system.rawValue
         return AppLanguage(rawValue: storedValue) ?? .system

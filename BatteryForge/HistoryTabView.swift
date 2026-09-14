@@ -174,10 +174,12 @@ private struct HistoryEntryRow: View {
                 entry.stressWorkers
             )
         }
+        let lowerLimit = AppLanguage.localizedPercent(Double(entry.lower))
+        let upperLimit = AppLanguage.localizedPercent(Double(entry.upper))
         return String.localizedStringWithFormat(
             AppLanguage.localized("history.configuration.summary"),
-            entry.lower,
-            entry.upper,
+            lowerLimit,
+            upperLimit,
             load
         )
     }
