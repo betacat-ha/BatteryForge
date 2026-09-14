@@ -519,6 +519,54 @@
         }
       }
     },
+    "battery.health.replace_now" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace Now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "现在更换"
+          }
+        }
+      }
+    },
+    "battery.health.replace_soon" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace Soon"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尽快更换"
+          }
+        }
+      }
+    },
+    "battery.health.service_battery" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Battery"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修理电池"
+          }
+        }
+      }
+    },
     "battery.health.service_recommended" : {
       "localizations" : {
         "en" : {

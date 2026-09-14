@@ -64,6 +64,7 @@ final class BatteryMonitor: ObservableObject {
     private var timer: AnyCancellable?
     private var isReadingSystemHealth = false
     private var lastSystemHealthRead = Date.distantPast
+    private var rawSystemHealthCondition: String?
 
     init(startMonitoring: Bool = true, initialSnapshot: BatterySnapshot? = nil) {
         if let initialSnapshot {
@@ -82,6 +83,9 @@ final class BatteryMonitor: ObservableObject {
         next.systemHealthPercent = snapshot.systemHealthPercent
         let powerSourceFound = readPowerSource(into: &next)
         let smartBatteryFound = readSmartBattery(into: &next)
+        if let rawSystemHealthCondition {
+            next.healthCondition = localizedHealth(rawSystemHealthCondition)
+        }
         hasBattery = powerSourceFound || smartBatteryFound
         next.lastUpdated = Date()
         snapshot = next
@@ -95,15 +99,22 @@ final class BatteryMonitor: ObservableObject {
 
         isReadingSystemHealth = true
         Task { [weak self] in
-            let percent = await Task.detached(priority: .utility) {
-                SystemBatteryHealthReader.readPercent()
+            let reading = await Task.detached(priority: .utility) {
+                SystemBatteryHealthReader.read()
             }.value
             guard let self else { return }
             self.isReadingSystemHealth = false
             self.lastSystemHealthRead = Date()
-            guard let percent else { return }
+            guard let reading else { return }
             var updated = self.snapshot
-            updated.systemHealthPercent = percent
+            if let percent = reading.percent {
+                updated.systemHealthPercent = percent
+            }
+            if let condition = reading.condition {
+                let localizedCondition = self.localizedHealth(condition)
+                self.rawSystemHealthCondition = condition
+                updated.healthCondition = localizedCondition
+            }
             self.snapshot = updated
         }
     }
@@ -201,17 +212,29 @@ final class BatteryMonitor: ObservableObject {
     }
 
     private func localizedHealth(_ value: String) -> String {
-        switch value.lowercased() {
+        switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
         case "good": AppLanguage.localized("battery.health.good")
-        case "fair": AppLanguage.localized("battery.health.normal")
-        case "poor", "check battery", "service battery": AppLanguage.localized("battery.health.service_recommended")
+        case "normal", "fair": AppLanguage.localized("battery.health.normal")
+        case "replace soon":
+            AppLanguage.localized("battery.health.replace_soon")
+        case "replace now":
+            AppLanguage.localized("battery.health.replace_now")
+        case "service battery":
+            AppLanguage.localized("battery.health.service_battery")
+        case "poor", "check battery", "service recommended":
+            AppLanguage.localized("battery.health.service_recommended")
         default: value
         }
     }
 }
 
 private enum SystemBatteryHealthReader {
-    nonisolated static func readPercent() -> Int? {
+    struct Reading: Sendable {
+        let percent: Int?
+        let condition: String?
+    }
+
+    nonisolated static func read() -> Reading? {
         let process = Process()
         let output = Pipe()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
@@ -230,12 +253,14 @@ private enum SystemBatteryHealthReader {
         else { return nil }
 
         for entry in entries {
-            guard let health = entry["sppower_battery_health_info"] as? [String: Any],
-                  let rawValue = health["sppower_battery_health_maximum_capacity"] as? String
-            else { continue }
-            let digits = rawValue.filter(\.isNumber)
-            guard let percent = Int(digits) else { continue }
-            return min(max(percent, 0), 100)
+            guard let health = entry["sppower_battery_health_info"] as? [String: Any] else { continue }
+            let condition = health["sppower_battery_health"] as? String
+            let percent = (health["sppower_battery_health_maximum_capacity"] as? String)
+                .flatMap { Int($0.filter(\.isNumber)) }
+                .map { min(max($0, 0), 100) }
+            if percent != nil || condition != nil {
+                return Reading(percent: percent, condition: condition)
+            }
         }
         return nil
     }
