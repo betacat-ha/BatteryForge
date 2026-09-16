@@ -13,6 +13,7 @@ struct ContentView: View {
     @StateObject private var cycle: CycleController
     @ObservedObject private var updateManager: AppUpdateManager
     @State private var selectedPage: SidebarPage? = .overview
+    @AppStorage("onboarding.helper.hasPresented") private var hasPresentedHelperOnboarding = false
     @AppStorage("cycle.lowerLimit") private var lowerLimit = 25.0
     @AppStorage("cycle.upperLimit") private var upperLimit = 80.0
     @AppStorage("workload.enabled") private var workloadEnabled = true
@@ -62,8 +63,21 @@ struct ContentView: View {
         }
         .frame(minWidth: 900, minHeight: 680)
         .environment(\.locale, appLanguage.locale)
-        .onAppear(perform: normalizeSavedSettings)
+        .onAppear {
+            normalizeSavedSettings()
+            cycle.helper.refreshRegistrationState()
+            if !hasPresentedHelperOnboarding {
+                hasPresentedHelperOnboarding = true
+                cycle.showsHelperOnboarding = cycle.helper.state == .notRegistered
+            }
+        }
         .task { await updateManager.checkAutomaticallyIfNeeded() }
+        .sheet(isPresented: $cycle.showsHelperOnboarding) {
+            HelperOnboardingView(helper: cycle.helper) {
+                cycle.showsHelperOnboarding = false
+            }
+            .environment(\.locale, appLanguage.locale)
+        }
         .alert(updateManager.alertTitle, isPresented: $updateManager.isUpdateAlertPresented) {
             if case .updateAvailable = updateManager.state {
                 Button("app_update.download") { updateManager.openUpdate() }
@@ -80,6 +94,11 @@ struct ContentView: View {
         .onChange(of: appLanguageRawValue) { _, _ in
             monitor.refresh()
             cycle.refreshLocalization()
+        }
+        .onChange(of: cycle.helper.state) { _, newState in
+            if newState == .enabled {
+                cycle.showsHelperOnboarding = false
+            }
         }
     }
 

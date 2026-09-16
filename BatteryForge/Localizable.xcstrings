@@ -2609,6 +2609,182 @@
         }
       }
     },
+    "onboarding.helper.authorization.detail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS asks for an administrator password only when installing, updating, or removing the service."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在安装、更新或移除服务时，macOS 才会要求输入管理员密码。"
+          }
+        }
+      }
+    },
+    "onboarding.helper.authorization.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Administrator Authorization"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理员授权"
+          }
+        }
+      }
+    },
+    "onboarding.helper.control.detail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BatteryForge uses a privileged helper to control charging safely and keep cycle tasks running in the background."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BatteryForge 通过特权后台服务安全控制充电，并让循环任务持续在后台运行。"
+          }
+        }
+      }
+    },
+    "onboarding.helper.control.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charging Control"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "充电控制"
+          }
+        }
+      }
+    },
+    "onboarding.helper.install" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Helper Service"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装后台服务"
+          }
+        }
+      }
+    },
+    "onboarding.helper.later" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂不安装"
+          }
+        }
+      }
+    },
+    "onboarding.helper.note" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Battery cycling features remain unavailable until the helper service is installed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装后台服务前，电池循环功能将不可用。"
+          }
+        }
+      }
+    },
+    "onboarding.helper.removable.detail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can uninstall the helper at any time in Settings without deleting cycle history or preferences."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你可以随时在设置中卸载后台服务，循环历史和偏好设置不会被删除。"
+          }
+        }
+      }
+    },
+    "onboarding.helper.removable.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fully Removable"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可随时移除"
+          }
+        }
+      }
+    },
+    "onboarding.helper.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One quick setup unlocks BatteryForge's charging controls."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成一次简单设置，即可启用 BatteryForge 的充电控制功能。"
+          }
+        }
+      }
+    },
+    "onboarding.helper.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Up BatteryForge"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置 BatteryForge"
+          }
+        }
+      }
+    },
     "overview.subtitle" : {
       "localizations" : {
         "en" : {

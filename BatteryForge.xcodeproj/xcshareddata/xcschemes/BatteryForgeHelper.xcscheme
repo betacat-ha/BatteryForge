@@ -17,6 +17,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "B10000000000000000000010"
                BuildableName = "BatteryForgeHelper"
+               BlueprintName = "BatteryForgeHelper"
                ReferencedContainer = "container:BatteryForge.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -47,6 +48,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "B10000000000000000000010"
             BuildableName = "BatteryForgeHelper"
+            BlueprintName = "BatteryForgeHelper"
             ReferencedContainer = "container:BatteryForge.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -63,6 +65,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "B10000000000000000000010"
             BuildableName = "BatteryForgeHelper"
+            BlueprintName = "BatteryForgeHelper"
             ReferencedContainer = "container:BatteryForge.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

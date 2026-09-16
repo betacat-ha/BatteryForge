@@ -37,6 +37,7 @@ final class CycleController: ObservableObject {
     @Published private(set) var completedCycles = 0
     @Published private(set) var statusMessage = AppLanguage.localized("cycle.status.ready")
     @Published private(set) var stressRunning = false
+    @Published var showsHelperOnboarding = false
 
     let helper = HelperManager()
 
@@ -80,10 +81,11 @@ final class CycleController: ObservableObject {
             statusMessage = AppLanguage.localized("cycle.status.adjust_thresholds")
             return
         }
+        helper.refreshRegistrationState()
         guard helper.state == .enabled else {
-            helper.install()
+            showsHelperOnboarding = true
             phase = .failed(AppLanguage.localized("helper.error.approval_required"))
-            statusMessage = helper.message.isEmpty ? AppLanguage.localized("helper.status.approve_then_retry") : helper.message
+            statusMessage = AppLanguage.localized("helper.status.approve_then_retry")
             return
         }
         guard !helper.requiresUpdate else {
