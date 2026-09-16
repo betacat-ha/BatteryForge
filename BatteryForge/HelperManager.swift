@@ -148,6 +148,7 @@ struct CycleHistoryEntry: Codable, Identifiable, Equatable {
 enum HelperState: Equatable {
     case notRegistered
     case installing
+    case uninstalling
     case enabled
     case unavailable(String)
 
@@ -155,6 +156,7 @@ enum HelperState: Equatable {
         switch self {
         case .notRegistered: AppLanguage.localized("helper.state.not_installed")
         case .installing: AppLanguage.localized("helper.state.installing")
+        case .uninstalling: AppLanguage.localized("helper.state.uninstalling")
         case .enabled: AppLanguage.localized("helper.state.enabled")
         case .unavailable: AppLanguage.localized("helper.state.unavailable")
         }
@@ -214,7 +216,7 @@ final class HelperManager: ObservableObject {
     }
 
     func refreshRegistrationState() {
-        if state == .installing { return }
+        if state == .installing || state == .uninstalling { return }
         let isInstalled = FileManager.default.fileExists(atPath: installedHelperPath)
         state = isInstalled ? .enabled : .notRegistered
         if isInstalled {
@@ -225,7 +227,7 @@ final class HelperManager: ObservableObject {
     }
 
     func install() {
-        guard state != .installing else { return }
+        guard state != .installing, state != .uninstalling else { return }
         guard let helperURL = Bundle.main.url(forResource: "BatteryForgeHelper", withExtension: nil) else {
             state = .unavailable(AppLanguage.localized("helper.error.executable_missing"))
             return
@@ -257,6 +259,43 @@ final class HelperManager: ObservableObject {
                 await MainActor.run {
                     self.state = .unavailable(error.localizedDescription)
                     self.message = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    func uninstall() {
+        guard state != .installing, state != .uninstalling else { return }
+        guard FileManager.default.fileExists(atPath: installedHelperPath) else {
+            state = .notRegistered
+            installedVersion = nil
+            return
+        }
+
+        connection?.invalidate()
+        connection = nil
+        state = .uninstalling
+        message = AppLanguage.localized("helper.status.authorization_prompt")
+        Task.detached {
+            do {
+                try HelperInstaller.uninstall()
+                await MainActor.run {
+                    self.state = .notRegistered
+                    self.installedVersion = nil
+                    self.isCycleRunning = false
+                    self.phase = "idle"
+                    self.completedCycles = 0
+                    self.highLoadRunning = false
+                    self.historyEntries = []
+                    self.historyUpdatedAt = Date()
+                    self.message = AppLanguage.localized("helper.status.uninstalled")
+                }
+            } catch {
+                await MainActor.run {
+                    let isInstalled = FileManager.default.fileExists(atPath: self.installedHelperPath)
+                    self.state = isInstalled ? .enabled : .notRegistered
+                    self.message = error.localizedDescription
+                    self.refreshHelperVersions()
                 }
             }
         }
@@ -491,6 +530,36 @@ private enum HelperInstaller {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             throw HelperManagerError.helper(
                 detail?.isEmpty == false ? detail! : AppLanguage.localized("helper.error.install_cancelled")
+            )
+        }
+    }
+
+    nonisolated static func uninstall() throws {
+        let command = [
+            "/bin/launchctl bootout system/com.betacat.batteryforge.helper 2>/dev/null || true",
+            "/bin/launchctl bootout system/cn.com.betacat.battery.helper 2>/dev/null || true",
+            "/bin/rm -f /Library/PrivilegedHelperTools/com.betacat.batteryforge.helper",
+            "/bin/rm -f /Library/LaunchDaemons/com.betacat.batteryforge.helper.plist",
+            "/bin/rm -f /Library/PrivilegedHelperTools/cn.com.betacat.battery.helper",
+            "/bin/rm -f /Library/LaunchDaemons/cn.com.betacat.battery.helper.plist",
+            "/bin/rm -f \(shellQuote(HelperConstants.versionFilePath))",
+            "/bin/rm -f '/Library/Application Support/BatteryForge/force-stop'"
+        ].joined(separator: "; ")
+        let appleScript = "do shell script \"\(appleScriptQuote(command))\" with administrator privileges"
+
+        let process = Process()
+        let errorPipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", appleScript]
+        process.standardOutput = Pipe()
+        process.standardError = errorPipe
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            let detail = String(data: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            throw HelperManagerError.helper(
+                detail?.isEmpty == false ? detail! : AppLanguage.localized("helper.error.uninstall_cancelled")
             )
         }
     }

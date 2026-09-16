@@ -144,6 +144,11 @@ final class CycleController: ObservableObject {
         synchronizeWithHelper()
     }
 
+    func uninstallHelper() {
+        guard !canStopCycle else { return }
+        helper.uninstall()
+    }
+
     func refreshLocalization() {
         if phase == .idle {
             statusMessage = AppLanguage.localized("cycle.status.ready")

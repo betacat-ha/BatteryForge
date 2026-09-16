@@ -5,6 +5,7 @@ struct CycleSettingsTabView: View {
     @ObservedObject var helper: HelperManager
     @Binding var lowerLimit: Double
     @Binding var upperLimit: Double
+    @State private var showsUninstallConfirmation = false
 
     var body: some View {
         automationCard
@@ -26,6 +27,16 @@ struct CycleSettingsTabView: View {
             }
             .padding(8)
         }
+        .confirmationDialog(
+            "helper.uninstall.confirm.title",
+            isPresented: $showsUninstallConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("helper.action.uninstall", role: .destructive, action: cycle.uninstallHelper)
+            Button("common.cancel", role: .cancel) {}
+        } message: {
+            Text("helper.uninstall.confirm.message")
+        }
     }
 
     private var helperStatus: some View {
@@ -36,7 +47,7 @@ struct CycleSettingsTabView: View {
             switch helper.state {
             case .notRegistered, .unavailable:
                 Button("helper.action.install") { cycle.installHelper() }
-            case .installing:
+            case .installing, .uninstalling:
                 ProgressView().controlSize(.small)
             case .enabled:
                 HStack(spacing: 10) {
@@ -51,6 +62,11 @@ struct CycleSettingsTabView: View {
                         }
                             .controlSize(.small)
                     }
+                    Button("helper.action.uninstall", role: .destructive) {
+                        showsUninstallConfirmation = true
+                    }
+                        .controlSize(.small)
+                        .disabled(cycle.canStopCycle)
                 }
             }
         }
