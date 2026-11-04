@@ -1,3 +1,4 @@
+import BatteryForgeCore
 import Foundation
 import IOKit
 import IOKit.pwr_mgt
@@ -101,7 +102,8 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
     }
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
-        guard validateClient(connection) else { return false }
+        guard let requirement = HelperClientIdentity.trustedRequirement() else { return false }
+        connection.setCodeSigningRequirement(requirement)
         connection.exportedInterface = NSXPCInterface(with: BatteryHelperProtocol.self)
         connection.exportedObject = self
         connection.resume()
@@ -521,23 +523,7 @@ final class HelperDaemon: NSObject, NSXPCListenerDelegate, BatteryHelperProtocol
         }
     }
 
-    private func validateClient(_ connection: NSXPCConnection) -> Bool {
-        let attributes = [kSecGuestAttributePid as String: NSNumber(value: connection.processIdentifier)] as CFDictionary
-        var code: SecCode?
-        guard SecCodeCopyGuestWithAttributes(nil, attributes, [], &code) == errSecSuccess, let code else { return false }
-        var staticCode: SecStaticCode?
-        guard SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode else { return false }
-        var unmanagedInformation: CFDictionary?
-        let flags = SecCSFlags(rawValue: 1 << 1) // kSecCSSigningInformation
-        guard SecCodeCopySigningInformation(staticCode, flags, &unmanagedInformation) == errSecSuccess,
-              let information = unmanagedInformation as? [String: Any],
-              information[kSecCodeInfoIdentifier as String] as? String == "com.betacat.batteryforge",
-              information[kSecCodeInfoTeamIdentifier as String] as? String == "TRM3RPP378",
-              let cms = information[kSecCodeInfoCMS as String] as? Data,
-              !cms.isEmpty
-        else { return false }
-        return true
-    }
+
 }
 
 private enum SignalStorage {

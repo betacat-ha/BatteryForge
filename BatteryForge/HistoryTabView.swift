@@ -42,17 +42,24 @@ struct HistoryTabView: View {
             Button("history.action.refresh", systemImage: "arrow.clockwise") {
                 helper.refreshHistory()
             }
-            .disabled(helper.isHistoryLoading || helper.requiresUpdate)
+            .disabled(helper.state != .enabled || helper.isHistoryLoading || helper.requiresUpdate)
             Button("history.action.clear", systemImage: "trash", role: .destructive) {
                 showsClearConfirmation = true
             }
-            .disabled(helper.historyEntries.isEmpty || helper.isHistoryLoading || helper.requiresUpdate)
+            .disabled(helper.state != .enabled || helper.historyEntries.isEmpty || helper.isHistoryLoading || helper.requiresUpdate)
         }
     }
 
     @ViewBuilder
     private var historyContent: some View {
-        if helper.requiresUpdate {
+        if helper.state == .needsAuthorization {
+            ContentUnavailableView(
+                "helper.state.authorization_required",
+                systemImage: "lock.shield",
+                description: Text("helper.authorization.note")
+            )
+            .frame(minHeight: 360)
+        } else if helper.requiresUpdate {
             ContentUnavailableView(
                 "history.update_required.title",
                 systemImage: "arrow.triangle.2.circlepath.circle.fill",

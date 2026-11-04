@@ -66,12 +66,19 @@ jobs:
             -configuration Release \
             -showBuildSettings)"
           version="$(awk '/ MARKETING_VERSION = / { print $3; exit }' <<< "$settings")"
+          helper_version="$(awk '/ BATTERYFORGE_HELPER_VERSION = / { print $3; exit }' <<< "$settings")"
 
           if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
             echo "Invalid MARKETING_VERSION: $version" >&2
             exit 1
           fi
 
+          if [[ ! "$helper_version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
+            echo "Invalid BATTERYFORGE_HELPER_VERSION: $helper_version" >&2
+            exit 1
+          fi
+
+          echo "helper_version=$helper_version" >> "$GITHUB_OUTPUT"
           if [[ "$channel" == "release" ]]; then
             tag="v${version}"
             title="BatteryForge ${version}"
@@ -100,10 +107,12 @@ jobs:
             exit 1
           fi
 
+      - name: Run battery regression tests
+        run: swift test --package-path Packages/BatteryForgeCore
+
       - name: Build release app
         shell: bash
         env:
-          VERSION: ${{ steps.metadata.outputs.version }}
           CHANNEL: ${{ steps.metadata.outputs.channel }}
         run: |
           set -euo pipefail
@@ -114,7 +123,6 @@ jobs:
             -configuration Release \
             -destination 'platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            MARKETING_VERSION="$VERSION" \
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
             ARCHS="arm64 x86_64" \
             ONLY_ACTIVE_ARCH=NO \
@@ -126,6 +134,9 @@ jobs:
         shell: bash
         env:
           TAG: ${{ steps.metadata.outputs.tag }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+          HELPER_VERSION: ${{ steps.metadata.outputs.helper_version }}
+          CHANNEL: ${{ steps.metadata.outputs.channel }}
         run: |
           set -euo pipefail
           app="$RUNNER_TEMP/DerivedData/Build/Products/Release/BatteryForge.app"
@@ -133,20 +144,14 @@ jobs:
           output="$RUNNER_TEMP/release"
           staging="$RUNNER_TEMP/dmg"
 
-          test -d "$app"
-          test -f "$app/Contents/Resources/AppIcon.icns"
-          test -x "$app/Contents/Resources/BatteryForgeHelper"
-          test -f "$app/Contents/Library/LaunchDaemons/com.betacat.batteryforge.helper.plist"
-
-          for binary in \
-            "$app/Contents/MacOS/BatteryForge" \
-            "$app/Contents/Resources/BatteryForgeHelper"; do
-            archs="$(lipo -archs "$binary")"
-            [[ "$archs" == *"arm64"* && "$archs" == *"x86_64"* ]]
-          done
-
-          codesign --force --deep --sign - "$app"
-          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign --force --options runtime --sign - "$app/Contents/Resources/BatteryForgeHelper"
+          codesign --force --options runtime --sign - "$app"
+          python3 .github/scripts/validate_release.py \
+            --app "$app" \
+            --version "$VERSION" \
+            --helper-version "$HELPER_VERSION" \
+            --build "$GITHUB_RUN_NUMBER" \
+            --channel "$CHANNEL"
 
           mkdir -p "$output"
           mkdir -p "$staging"
@@ -158,6 +163,8 @@ jobs:
             -ov \
             -format UDZO \
             "$output/$artifact"
+          codesign --sign - "$output/$artifact"
+          codesign --verify --strict "$output/$artifact"
           hdiutil verify "$output/$artifact"
           (
             cd "$output"

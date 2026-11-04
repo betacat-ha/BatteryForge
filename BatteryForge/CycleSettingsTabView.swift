@@ -15,6 +15,12 @@ struct CycleSettingsTabView: View {
         GroupBox("cycle.group.title") {
             VStack(spacing: 14) {
                 helperStatus
+                if helper.state == .needsAuthorization {
+                    Text("helper.authorization.note")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 if helper.requiresUpdate {
                     helperUpdateNotice
                 }
@@ -47,6 +53,8 @@ struct CycleSettingsTabView: View {
             switch helper.state {
             case .notRegistered, .unavailable:
                 Button("helper.action.install") { cycle.installHelper() }
+            case .needsAuthorization:
+                Button("helper.action.authorize_current_app") { cycle.installHelper() }
             case .installing, .uninstalling:
                 ProgressView().controlSize(.small)
             case .enabled:

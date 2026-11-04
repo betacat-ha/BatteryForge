@@ -45,9 +45,19 @@ xcodebuild \
 
 ## Versions and builds
 
-Change release versions only when preparing a release. The project-level `BATTERYFORGE_HELPER_VERSION` setting controls the helper release version. The macOS app and helper share `CURRENT_PROJECT_VERSION` as their build number; increment that build for fixes within the same release, such as `0.0.5 (Build 2)` to `0.0.5 (Build 3)`. CI already supplies `CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"`; local builds can override it in Xcode or on the command line.
+The app and helper have independent release versions. Increment the project-level `BATTERYFORGE_HELPER_VERSION` when shipping new helper functionality or functional changes, and use `MARKETING_VERSION` for the app. During development of the same release, increment only the shared `CURRENT_PROJECT_VERSION`.
 
-The helper's `--version` prints its release version and `--build` prints its build number. Legacy installations without build metadata require a one-time update. Helper communication requires a valid team certificate signature; the unsigned build above supports compilation checks and battery monitoring.
+Release builds, including beta and alpha distributions, check helper updates using release versions and display only that version. Debug builds additionally compare build numbers within the same release and display values such as `0.0.6 (Build 2)`. CI still records `CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"` for traceability and validation; it does not replace the helper release version.
+
+The helper's `--version` prints its release version and `--build` prints its build number. The helper verifies the exact app identity approved during privileged installation. A complete app needs at least an ad-hoc signature; the unsigned build above supports compilation checks and battery monitoring.
+
+## Publishing with GitHub Actions
+
+Increment the app's `MARKETING_VERSION` when preparing a release, and increment `BATTERYFORGE_HELPER_VERSION` when shipping new helper functionality or functional changes. Review before committing, then push a commit marked `[beta]`, `[alpha]`, or `[release]`, or manually run `Build and Publish` with the desired channel. Build and upload release installers through this workflow.
+
+The workflow uses ad-hoc signing (`codesign --sign -`). It needs no paid developer account, developer certificate, or signing Secrets, and does not notarize the app. Before upload, validation checks the separate release versions, matching builds, update channel, signature integrity, and Apple Silicon / Intel architectures. Build arguments do not override the helper release version.
+
+During privileged installation, administrator approval records each CPU slice's code hash in a root-managed connection requirement. System XPC signature checks restrict the helper to that exact app version. After upgrading or rebuilding, choose Authorize Current App in Settings; this reinstalls the helper and safely stops active cycles. Installation copies and validates the full app in a private root directory before approving it, and uninstallation removes the requirement. Ad-hoc signing does not establish developer identity, so downloaded apps may still require macOS security approval.
 
 ## Safety and privacy
 

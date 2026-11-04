@@ -45,9 +45,19 @@ xcodebuild \
 
 ### 版本与 Build
 
-发布版本只在准备发版时调整。帮助程序的发布版本由 Xcode 项目级 `BATTERYFORGE_HELPER_VERSION` 管理；macOS App 与帮助程序共用 `CURRENT_PROJECT_VERSION` 作为 Build 编号，同一版本下的修复递增 Build。例如 `0.0.5 (Build 2)` 与 `0.0.5 (Build 3)` 属于同一发布版本，安装检查会识别较新的 Build。CI 已通过 `CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"` 注入构建编号，本地也可在 Xcode 或命令行覆盖。
+App 与帮助程序分别维护发布版本。帮助程序新增功能或发布功能变更时，递增 Xcode 项目级 `BATTERYFORGE_HELPER_VERSION`；App 的发布版本使用 `MARKETING_VERSION`。同一版本内的开发迭代只递增共用的 `CURRENT_PROJECT_VERSION`，避免开发阶段反复改变发布版本。
 
-帮助程序的 `--version` 输出发布版本，`--build` 输出 Build 编号；没有 Build 信息的旧安装会要求更新一次。后台服务通信需要有效的团队证书签名，上面的不签名构建仅用于编译验证和电池信息查看。
+Release 构建（含 Beta / Alpha 发布包）按帮助程序的发布版本判断更新，只显示发布版本。Debug 构建才在相同发布版本内比较 Build，并显示例如 `0.0.6 (Build 2)`。CI 仍通过 `CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"` 记录构建编号用于追溯和校验，不以它代替帮助程序的发布版本。
+
+帮助程序的 `--version` 输出发布版本，`--build` 输出 Build 编号。后台服务使用安装时经管理员授权的应用代码标识验证连接。完整应用至少需要临时签名，上面的不签名构建仅用于编译验证和电池信息查看。
+
+### GitHub Actions 发布
+
+准备发版时递增 App 的 `MARKETING_VERSION`；帮助程序有新功能或功能变更时同时递增 `BATTERYFORGE_HELPER_VERSION`。确认提交内容后再推送带 `[beta]`、`[alpha]` 或 `[release]` 标记的提交；也可以手动运行 `Build and Publish` 并选择通道。发布安装包统一由该工作流构建和上传。
+
+工作流使用 `codesign --sign -` 临时签名，无需付费开发者账户、开发者证书或签名 Secrets，不包含 Apple 公证。上传前校验 App 与帮助程序的独立发布版本、相同 Build、更新通道、签名完整性以及 Apple Silicon / Intel 架构；构建参数不会覆盖帮助程序的发布版本。
+
+安装或升级帮助程序时，管理员授权会将当前应用各 CPU 架构的代码哈希保存为 root 管理的连接规则。后台通过系统 XPC 签名校验，只接受这一应用版本。应用升级或重新构建后需在设置中选择“授权当前应用”；授权会重新安装后台服务并安全停止正在运行的循环。规则保存前会在 root 私有目录中复制并验证完整应用，卸载帮助程序时移除规则。临时签名不提供开发者身份证明，下载后的应用仍可能需要通过 macOS 的安全确认。
 
 ## 安全与隐私
 

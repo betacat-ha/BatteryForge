@@ -1,6 +1,70 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "helper.state.authorization_required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current App Authorization Required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前应用需要授权"
+          }
+        }
+      }
+    },
+    "helper.error.client_signature_invalid": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current app signature could not be verified. Use a complete, signed build and try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法验证当前应用的代码签名，请使用完整且已签名的构建版本后重试。"
+          }
+        }
+      }
+    },
+    "helper.authorization.note": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After upgrading the app, authorize this version in Settings to communicate with the helper. Authorization reinstalls the helper and safely stops any active cycle."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "升级应用后，请在设置中授权当前版本与后台服务通信。授权会重新安装服务，并安全停止正在运行的循环。"
+          }
+        }
+      }
+    },
+    "helper.action.authorize_current_app": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authorize Current App"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "授权当前应用"
+          }
+        }
+      }
+    },
     "about.copyright" : {
       "localizations" : {
         "en" : {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// A release version and its independent Xcode build number.
+/// Release versions identify shipped helper changes; builds distinguish development iterations.
 public struct HelperBuildVersion: Equatable, Sendable {
     public let version: String
     public let build: String?
@@ -10,22 +10,25 @@ public struct HelperBuildVersion: Equatable, Sendable {
         self.build = build
     }
 
-    public var displayValue: String {
-        guard let build else { return version }
+    public func displayValue(includeBuild: Bool = false) -> String {
+        guard includeBuild, let build else { return version }
         return "\(version) (Build \(build))"
     }
 
-    public func needsUpdate(to bundled: HelperBuildVersion) -> Bool {
-        // Legacy helpers have no build marker. Reinstall once to migrate,
-        // including local helpers whose unreleased version was incremented.
-        guard let build, let bundledBuild = bundled.build,
-              let installedComponents = Self.components(version),
-              let bundledComponents = Self.components(bundled.version),
-              let installedBuildComponents = Self.components(build),
-              let bundledBuildComponents = Self.components(bundledBuild)
+    public func needsUpdate(to bundled: HelperBuildVersion, compareBuilds: Bool = false) -> Bool {
+        guard let installedComponents = Self.components(version),
+              let bundledComponents = Self.components(bundled.version)
         else { return true }
         let versionOrder = Self.compare(installedComponents, bundledComponents)
         if versionOrder != 0 { return versionOrder < 0 }
+
+        // Shipped apps update helpers by release version. Only development
+        // builds compare build numbers within the same release version.
+        guard compareBuilds else { return false }
+        guard let build, let bundledBuild = bundled.build,
+              let installedBuildComponents = Self.components(build),
+              let bundledBuildComponents = Self.components(bundledBuild)
+        else { return true }
         return Self.compare(installedBuildComponents, bundledBuildComponents) < 0
     }
 

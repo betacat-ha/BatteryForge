@@ -8,6 +8,11 @@ enum HelperConstants {
     nonisolated static let plistName = "com.betacat.batteryforge.helper.plist"
     nonisolated static let bundledVersion = Bundle.main.object(forInfoDictionaryKey: "BatteryForgeHelperVersion") as? String
     nonisolated static let bundledBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+    #if DEBUG
+    nonisolated static let usesDevelopmentBuilds = true
+    #else
+    nonisolated static let usesDevelopmentBuilds = false
+    #endif
     nonisolated static let buildFilePath = "/Library/Application Support/BatteryForge/helper-build"
     nonisolated static let versionFilePath = "/Library/Application Support/BatteryForge/helper-version"
 }
@@ -128,6 +133,7 @@ struct CycleHistoryEntry: Codable, Identifiable, Equatable {
 
 enum HelperState: Equatable {
     case notRegistered
+    case needsAuthorization
     case installing
     case uninstalling
     case enabled
@@ -136,6 +142,7 @@ enum HelperState: Equatable {
     var title: String {
         switch self {
         case .notRegistered: AppLanguage.localized("helper.state.not_installed")
+        case .needsAuthorization: AppLanguage.localized("helper.state.authorization_required")
         case .installing: AppLanguage.localized("helper.state.installing")
         case .uninstalling: AppLanguage.localized("helper.state.uninstalling")
         case .enabled: AppLanguage.localized("helper.state.enabled")
@@ -162,6 +169,7 @@ final class HelperManager: ObservableObject {
 
     private let previousService = SMAppService.daemon(plistName: "cn.com.betacat.battery.helper.plist")
     private var connection: NSXPCConnection?
+    private let currentClientRequirement = try? HelperClientIdentity.requirement(for: Bundle.main.bundleURL)
     private let installedHelperPath = "/Library/PrivilegedHelperTools/com.betacat.batteryforge.helper"
 
     var requiresUpdate: Bool {
@@ -169,7 +177,8 @@ final class HelperManager: ObservableObject {
         guard let bundledVersion else { return true }
         guard let installedVersion else { return true }
         return HelperBuildVersion(version: installedVersion, build: installedBuild).needsUpdate(
-            to: HelperBuildVersion(version: bundledVersion, build: HelperConstants.bundledBuild)
+            to: HelperBuildVersion(version: bundledVersion, build: HelperConstants.bundledBuild),
+            compareBuilds: HelperConstants.usesDevelopmentBuilds
         )
     }
 
@@ -177,19 +186,19 @@ final class HelperManager: ObservableObject {
         guard let installedVersion else { return nil }
         return String.localizedStringWithFormat(
             AppLanguage.localized("helper.version.current"),
-            HelperBuildVersion(version: installedVersion, build: installedBuild).displayValue
+            HelperBuildVersion(version: installedVersion, build: installedBuild).displayValue(includeBuild: HelperConstants.usesDevelopmentBuilds)
         )
     }
 
     var updateDescription: String? {
         guard requiresUpdate, let bundledVersion else { return nil }
         let installed = installedVersion.map {
-            HelperBuildVersion(version: $0, build: installedBuild).displayValue
+            HelperBuildVersion(version: $0, build: installedBuild).displayValue(includeBuild: HelperConstants.usesDevelopmentBuilds)
         } ?? AppLanguage.localized("helper.version.unknown")
         return String.localizedStringWithFormat(
             AppLanguage.localized("helper.update.description"),
             installed,
-            HelperBuildVersion(version: bundledVersion, build: HelperConstants.bundledBuild).displayValue
+            HelperBuildVersion(version: bundledVersion, build: HelperConstants.bundledBuild).displayValue(includeBuild: HelperConstants.usesDevelopmentBuilds)
         )
     }
 
@@ -202,7 +211,13 @@ final class HelperManager: ObservableObject {
     func refreshRegistrationState() {
         if state == .installing || state == .uninstalling { return }
         let isInstalled = FileManager.default.fileExists(atPath: installedHelperPath)
-        state = isInstalled ? .enabled : .notRegistered
+        if isInstalled {
+            state = currentClientRequirement != nil
+                && currentClientRequirement == HelperClientIdentity.trustedRequirement()
+                ? .enabled : .needsAuthorization
+        } else {
+            state = .notRegistered
+        }
         if isInstalled {
             refreshHelperVersions()
         } else {
@@ -233,7 +248,8 @@ final class HelperManager: ObservableObject {
             do {
                 try HelperInstaller.install(helperURL: helperURL, plistURL: plistURL)
                 await MainActor.run {
-                    self.state = .enabled
+                    self.state = .notRegistered
+                    self.refreshRegistrationState()
                     self.message = AppLanguage.localized("helper.status.installed")
                     self.connection?.invalidate()
                     self.connection = nil
@@ -279,8 +295,8 @@ final class HelperManager: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    let isInstalled = FileManager.default.fileExists(atPath: self.installedHelperPath)
-                    self.state = isInstalled ? .enabled : .notRegistered
+                    self.state = .notRegistered
+                    self.refreshRegistrationState()
                     self.message = error.localizedDescription
                     self.refreshHelperVersions()
                 }
@@ -488,22 +504,36 @@ private enum HelperInstaller {
         let plistDestination = "/Library/LaunchDaemons/com.betacat.batteryforge.helper.plist"
         let versionDestination = HelperConstants.versionFilePath
         let buildDestination = HelperConstants.buildFilePath
+        let clientRequirement: String
+        do {
+            clientRequirement = try HelperClientIdentity.requirement(for: Bundle.main.bundleURL)
+        } catch {
+            throw HelperManagerError.helper(AppLanguage.localized("helper.error.client_signature_invalid"))
+        }
+        let requirementDestination = HelperClientIdentity.requirementPath
         guard let version = HelperConstants.bundledVersion,
               let build = HelperConstants.bundledBuild else {
             throw HelperManagerError.helper(AppLanguage.localized("helper.error.build_metadata_missing"))
         }
         let command = [
+            "set -e",
             "/bin/mkdir -p '/Library/Application Support/BatteryForge'",
+            "/usr/sbin/chown root:wheel '/Library/Application Support/BatteryForge'",
+            "/bin/chmod 755 '/Library/Application Support/BatteryForge'",
+            "helper_staging=$(/usr/bin/mktemp -d '/Library/Application Support/BatteryForge/install.XXXXXX')",
+            "trap '/bin/rm -rf \"$helper_staging\"' EXIT",
+            "/usr/bin/ditto \(shellQuote(Bundle.main.bundleURL.path)) \"$helper_staging/BatteryForge.app\"",
+            "/usr/bin/codesign --verify --deep --strict --all-architectures -R \(shellQuote("=" + clientRequirement)) \"$helper_staging/BatteryForge.app\"",
             "/usr/bin/touch '/Library/Application Support/BatteryForge/force-stop'",
             "/bin/launchctl bootout system/com.betacat.batteryforge.helper 2>/dev/null || true",
             "/bin/launchctl bootout system/cn.com.betacat.battery.helper 2>/dev/null || true",
             "/bin/rm -f /Library/PrivilegedHelperTools/cn.com.betacat.battery.helper",
             "/bin/rm -f /Library/LaunchDaemons/cn.com.betacat.battery.helper.plist",
             "/bin/mkdir -p /Library/PrivilegedHelperTools",
-            "/bin/cp \(shellQuote(helperURL.path)) \(shellQuote(helperDestination))",
+            "/bin/cp \"$helper_staging/BatteryForge.app/Contents/Resources/BatteryForgeHelper\" \(shellQuote(helperDestination))",
             "/usr/sbin/chown root:wheel \(shellQuote(helperDestination))",
             "/bin/chmod 755 \(shellQuote(helperDestination))",
-            "/bin/cp \(shellQuote(plistURL.path)) \(shellQuote(plistDestination))",
+            "/bin/cp \"$helper_staging/BatteryForge.app/Contents/Library/LaunchDaemons/\(HelperConstants.plistName)\" \(shellQuote(plistDestination))",
             "/usr/sbin/chown root:wheel \(shellQuote(plistDestination))",
             "/bin/chmod 644 \(shellQuote(plistDestination))",
             "/bin/echo \(shellQuote(version)) > \(shellQuote(versionDestination))",
@@ -512,6 +542,10 @@ private enum HelperInstaller {
             "/bin/echo \(shellQuote(build)) > \(shellQuote(buildDestination))",
             "/usr/sbin/chown root:wheel \(shellQuote(buildDestination))",
             "/bin/chmod 644 \(shellQuote(buildDestination))",
+            "/bin/rm -f \(shellQuote(requirementDestination))",
+            "/usr/bin/printf '%s' \(shellQuote(clientRequirement)) > \(shellQuote(requirementDestination))",
+            "/usr/sbin/chown root:wheel \(shellQuote(requirementDestination))",
+            "/bin/chmod 644 \(shellQuote(requirementDestination))",
             "/bin/launchctl bootstrap system \(shellQuote(plistDestination))"
         ].joined(separator: "; ")
         let appleScript = "do shell script \"\(appleScriptQuote(command))\" with administrator privileges"
@@ -543,6 +577,7 @@ private enum HelperInstaller {
             "/bin/rm -f /Library/LaunchDaemons/cn.com.betacat.battery.helper.plist",
             "/bin/rm -f \(shellQuote(HelperConstants.versionFilePath))",
             "/bin/rm -f \(shellQuote(HelperConstants.buildFilePath))",
+            "/bin/rm -f \(shellQuote(HelperClientIdentity.requirementPath))",
             "/bin/rm -f '/Library/Application Support/BatteryForge/force-stop'"
         ].joined(separator: "; ")
         let appleScript = "do shell script \"\(appleScriptQuote(command))\" with administrator privileges"
