@@ -43,6 +43,12 @@ xcodebuild \
   build
 ```
 
+### 版本与 Build
+
+发布版本只在准备发版时调整。帮助程序的发布版本由 Xcode 项目级 `BATTERYFORGE_HELPER_VERSION` 管理；macOS App 与帮助程序共用 `CURRENT_PROJECT_VERSION` 作为 Build 编号，同一版本下的修复递增 Build。例如 `0.0.5 (Build 2)` 与 `0.0.5 (Build 3)` 属于同一发布版本，安装检查会识别较新的 Build。CI 已通过 `CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"` 注入构建编号，本地也可在 Xcode 或命令行覆盖。
+
+帮助程序的 `--version` 输出发布版本，`--build` 输出 Build 编号；没有 Build 信息的旧安装会要求更新一次。后台服务通信需要有效的团队证书签名，上面的不签名构建仅用于编译验证和电池信息查看。
+
 ## 安全与隐私
 
 BatteryForge 的监控和控制逻辑在本机运行。请勿在不了解 SMC 控制风险的情况下修改相关键值。温度过高、供电恢复失败或系统不支持时，应立即停止测试并确认电源状态。

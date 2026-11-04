@@ -1,3 +1,4 @@
+import BatteryForgeCore
 import Foundation
 import IOKit
 import IOKit.ps
@@ -26,26 +27,17 @@ enum HelperBatteryReader {
             }
         }
 
-        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
-        guard service != 0 else {
+        guard let reading = MacBatteryRegistry.read() else {
             return percent.map { HelperBatteryState(percent: $0, adapterPresent: false, temperature: nil) }
         }
-        defer { IOObjectRelease(service) }
-        var unmanaged: Unmanaged<CFMutableDictionary>?
-        guard IORegistryEntryCreateCFProperties(service, &unmanaged, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-              let values = unmanaged?.takeRetainedValue() as? [String: Any]
-        else {
-            return percent.map { HelperBatteryState(percent: $0, adapterPresent: false, temperature: nil) }
-        }
-
-        let registryPercent = (values["CurrentCapacity"] as? NSNumber)?.intValue
-        let adapterPresent = values["AdapterDetails"] != nil
-        let temperature = (values["Temperature"] as? NSNumber).map { $0.doubleValue / 10 - 273.15 }
-        guard let finalPercent = percent ?? registryPercent else { return nil }
+        let values = reading.properties
+        var snapshot = BatterySnapshot()
+        MacBatteryProperties.apply(values, packProperties: reading.packProperties, to: &snapshot)
+        guard let finalPercent = percent ?? MacBatteryProperties.chargePercent(in: values) else { return nil }
         return HelperBatteryState(
             percent: finalPercent,
-            adapterPresent: adapterPresent,
-            temperature: temperature
+            adapterPresent: values["AdapterDetails"] != nil,
+            temperature: snapshot.temperature
         )
     }
 }

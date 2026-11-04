@@ -1,36 +1,10 @@
+import BatteryForgeCore
 import Combine
 import Foundation
 import IOKit
 import IOKit.ps
 
-struct BatterySnapshot: Equatable {
-    var chargePercent = 0
-    var isCharging = false
-    var isConnectedToAC = false
-    var isFullyCharged = false
-    var currentCapacity: Int?
-    var maximumCapacity: Int?
-    var designCapacity: Int?
-    var voltage: Int?
-    var amperage: Int?
-    var cycleCount: Int?
-    var temperature: Double?
-    var timeRemaining: Int?
-    var healthCondition: String?
-    var systemHealthPercent: Int?
-    var batteryName: String?
-    var lastUpdated = Date()
-
-    var healthPercent: Int? {
-        guard let maximumCapacity, let designCapacity, designCapacity > 0 else { return nil }
-        return min(Int((Double(maximumCapacity) / Double(designCapacity) * 100).rounded()), 100)
-    }
-
-    var power: Double? {
-        guard let voltage, let amperage else { return nil }
-        return Double(voltage * amperage) / 1_000_000
-    }
-
+extension BatterySnapshot {
     var stateDescription: String {
         if isFullyCharged { return AppLanguage.localized("battery.state.fully_charged") }
         if isCharging { return AppLanguage.localized("battery.state.charging") }
@@ -38,22 +12,22 @@ struct BatterySnapshot: Equatable {
         return AppLanguage.localized("battery.state.on_battery")
     }
 
-    static let preview = BatterySnapshot(
-        chargePercent: 76,
-        isCharging: false,
-        isConnectedToAC: false,
-        currentCapacity: 3_842,
-        maximumCapacity: 5_012,
-        designCapacity: 5_103,
-        voltage: 12_143,
-        amperage: -1_184,
-        cycleCount: 128,
-        temperature: 31.4,
-        timeRemaining: 214,
-        healthCondition: "良好",
-        systemHealthPercent: 98,
-        batteryName: "内置电池"
-    )
+    static var preview: BatterySnapshot {
+        var snapshot = BatterySnapshot()
+        snapshot.chargePercent = 76
+        snapshot.currentCapacity = 3_842
+        snapshot.maximumCapacity = 5_012
+        snapshot.designCapacity = 5_103
+        snapshot.voltage = 12_143
+        snapshot.amperage = -1_184
+        snapshot.cycleCount = 128
+        snapshot.temperature = 31.4
+        snapshot.timeRemaining = 214
+        snapshot.healthCondition = "良好"
+        snapshot.systemHealthPercent = 98
+        snapshot.batteryName = "内置电池"
+        return snapshot
+    }
 }
 
 @MainActor
@@ -82,7 +56,7 @@ final class BatteryMonitor: ObservableObject {
         var next = BatterySnapshot()
         next.systemHealthPercent = snapshot.systemHealthPercent
         let powerSourceFound = readPowerSource(into: &next)
-        let smartBatteryFound = readSmartBattery(into: &next)
+        let smartBatteryFound = readSmartBattery(into: &next, needsChargePercent: !powerSourceFound)
         if let rawSystemHealthCondition {
             next.healthCondition = localizedHealth(rawSystemHealthCondition)
         }
@@ -150,31 +124,12 @@ final class BatteryMonitor: ObservableObject {
         return false
     }
 
-    private func readSmartBattery(into snapshot: inout BatterySnapshot) -> Bool {
-        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
-        guard service != 0 else { return false }
-        defer { IOObjectRelease(service) }
-
-        var unmanagedProperties: Unmanaged<CFMutableDictionary>?
-        guard IORegistryEntryCreateCFProperties(service, &unmanagedProperties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-              let properties = unmanagedProperties?.takeRetainedValue() as? [String: Any]
-        else { return false }
-
-        snapshot.currentCapacity = intValue(properties["AppleRawCurrentCapacity"])
-            ?? intValue(properties["CurrentCapacity"])
-        snapshot.maximumCapacity = intValue(properties["AppleRawMaxCapacity"])
-            ?? intValue(properties["MaxCapacity"])
-        snapshot.designCapacity = intValue(properties["DesignCapacity"])
-        snapshot.voltage = intValue(properties["Voltage"])
-        snapshot.amperage = intValue(properties["Amperage"])
-        snapshot.cycleCount = intValue(properties["CycleCount"])
-        snapshot.isFullyCharged = boolValue(properties["FullyCharged"]) ?? false
-        snapshot.isCharging = boolValue(properties["IsCharging"]) ?? snapshot.isCharging
-        snapshot.isConnectedToAC = boolValue(properties["ExternalConnected"]) ?? snapshot.isConnectedToAC
-
-        if let rawTemperature = doubleValue(properties["Temperature"]) {
-            // AppleSmartBattery reports temperature in tenths of a kelvin.
-            snapshot.temperature = rawTemperature / 10 - 273.15
+    private func readSmartBattery(into snapshot: inout BatterySnapshot, needsChargePercent: Bool) -> Bool {
+        guard let reading = MacBatteryRegistry.read() else { return false }
+        let properties = reading.properties
+        MacBatteryProperties.apply(properties, packProperties: reading.packProperties, to: &snapshot)
+        if needsChargePercent, let percent = MacBatteryProperties.chargePercent(in: properties) {
+            snapshot.chargePercent = percent
         }
 
         if snapshot.healthCondition != nil {
@@ -199,11 +154,6 @@ final class BatteryMonitor: ObservableObject {
     private func positiveInt(_ value: Any?) -> Int? {
         guard let value = intValue(value), value >= 0 else { return nil }
         return value
-    }
-
-    private func doubleValue(_ value: Any?) -> Double? {
-        if let number = value as? NSNumber { return number.doubleValue }
-        return value as? Double
     }
 
     private func boolValue(_ value: Any?) -> Bool? {

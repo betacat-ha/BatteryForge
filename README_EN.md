@@ -43,6 +43,12 @@ xcodebuild \
   build
 ```
 
+## Versions and builds
+
+Change release versions only when preparing a release. The project-level `BATTERYFORGE_HELPER_VERSION` setting controls the helper release version. The macOS app and helper share `CURRENT_PROJECT_VERSION` as their build number; increment that build for fixes within the same release, such as `0.0.5 (Build 2)` to `0.0.5 (Build 3)`. CI already supplies `CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"`; local builds can override it in Xcode or on the command line.
+
+The helper's `--version` prints its release version and `--build` prints its build number. Legacy installations without build metadata require a one-time update. Helper communication requires a valid team certificate signature; the unsigned build above supports compilation checks and battery monitoring.
+
 ## Safety and privacy
 
 BatteryForge performs its monitoring and control locally. Do not change SMC values unless you understand the associated risks. If temperature becomes excessive, power restoration fails, or the system is unsupported, stop the test and verify the Mac's power state immediately.

@@ -1,7 +1,8 @@
 import Foundation
 
 let helperMachServiceName = "com.betacat.batteryforge.helper"
-let helperVersion = "0.0.5"
+let helperVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+let helperBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
 
 struct HelperMessagePayload: Codable {
     let key: String

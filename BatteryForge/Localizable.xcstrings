@@ -1665,6 +1665,22 @@
         }
       }
     },
+    "helper.error.build_metadata_missing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The helper version or build number is missing. Rebuild the app before installing the helper."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少后台服务版本或构建编号，请重新构建应用后再安装。"
+          }
+        }
+      }
+    },
     "helper.error.connection_failed" : {
       "localizations" : {
         "en" : {

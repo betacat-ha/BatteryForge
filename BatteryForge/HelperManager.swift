@@ -1,3 +1,4 @@
+import BatteryForgeCore
 import Foundation
 import ServiceManagement
 import Combine
@@ -5,7 +6,9 @@ import Combine
 enum HelperConstants {
     nonisolated static let machServiceName = "com.betacat.batteryforge.helper"
     nonisolated static let plistName = "com.betacat.batteryforge.helper.plist"
-    nonisolated static let bundledVersion = "0.0.5"
+    nonisolated static let bundledVersion = Bundle.main.object(forInfoDictionaryKey: "BatteryForgeHelperVersion") as? String
+    nonisolated static let bundledBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+    nonisolated static let buildFilePath = "/Library/Application Support/BatteryForge/helper-build"
     nonisolated static let versionFilePath = "/Library/Application Support/BatteryForge/helper-version"
 }
 
@@ -30,28 +33,6 @@ protocol BatteryHelperProtocol {
 private struct HelperMessagePayload: Decodable {
     let key: String
     let arguments: [String]
-}
-
-private struct HelperSemanticVersion: Comparable {
-    let components: [Int]
-
-    init?(_ value: String) {
-        let components = value.split(separator: ".").compactMap { Int($0) }
-        guard components.count == value.split(separator: ".").count,
-              !components.isEmpty
-        else { return nil }
-        self.components = components
-    }
-
-    static func < (lhs: HelperSemanticVersion, rhs: HelperSemanticVersion) -> Bool {
-        let count = max(lhs.components.count, rhs.components.count)
-        for index in 0..<count {
-            let left = index < lhs.components.count ? lhs.components[index] : 0
-            let right = index < rhs.components.count ? rhs.components[index] : 0
-            if left != right { return left < right }
-        }
-        return false
-    }
 }
 
 private func localizedPercent(_ rawValue: String) -> String {
@@ -173,6 +154,7 @@ final class HelperManager: ObservableObject {
     @Published private(set) var message = ""
     @Published private(set) var bundledVersion: String? = HelperConstants.bundledVersion
     @Published private(set) var installedVersion: String?
+    @Published private(set) var installedBuild: String?
     @Published private(set) var historyEntries: [CycleHistoryEntry] = []
     @Published private(set) var historyUpdatedAt: Date?
     @Published private(set) var historyError: String?
@@ -183,29 +165,31 @@ final class HelperManager: ObservableObject {
     private let installedHelperPath = "/Library/PrivilegedHelperTools/com.betacat.batteryforge.helper"
 
     var requiresUpdate: Bool {
-        guard state == .enabled, let bundledVersion else { return false }
-        guard let installedVersion,
-              let installed = HelperSemanticVersion(installedVersion),
-              let bundled = HelperSemanticVersion(bundledVersion)
-        else { return true }
-        return installed < bundled
+        guard state == .enabled else { return false }
+        guard let bundledVersion else { return true }
+        guard let installedVersion else { return true }
+        return HelperBuildVersion(version: installedVersion, build: installedBuild).needsUpdate(
+            to: HelperBuildVersion(version: bundledVersion, build: HelperConstants.bundledBuild)
+        )
     }
 
     var versionDescription: String? {
         guard let installedVersion else { return nil }
         return String.localizedStringWithFormat(
             AppLanguage.localized("helper.version.current"),
-            installedVersion
+            HelperBuildVersion(version: installedVersion, build: installedBuild).displayValue
         )
     }
 
     var updateDescription: String? {
         guard requiresUpdate, let bundledVersion else { return nil }
-        let unknown = AppLanguage.localized("helper.version.unknown")
+        let installed = installedVersion.map {
+            HelperBuildVersion(version: $0, build: installedBuild).displayValue
+        } ?? AppLanguage.localized("helper.version.unknown")
         return String.localizedStringWithFormat(
             AppLanguage.localized("helper.update.description"),
-            installedVersion ?? unknown,
-            bundledVersion
+            installed,
+            HelperBuildVersion(version: bundledVersion, build: HelperConstants.bundledBuild).displayValue
         )
     }
 
@@ -223,6 +207,7 @@ final class HelperManager: ObservableObject {
             refreshHelperVersions()
         } else {
             installedVersion = nil
+            installedBuild = nil
         }
     }
 
@@ -269,6 +254,7 @@ final class HelperManager: ObservableObject {
         guard FileManager.default.fileExists(atPath: installedHelperPath) else {
             state = .notRegistered
             installedVersion = nil
+            installedBuild = nil
             return
         }
 
@@ -282,6 +268,7 @@ final class HelperManager: ObservableObject {
                 await MainActor.run {
                     self.state = .notRegistered
                     self.installedVersion = nil
+                    self.installedBuild = nil
                     self.isCycleRunning = false
                     self.phase = "idle"
                     self.completedCycles = 0
@@ -469,11 +456,15 @@ final class HelperManager: ObservableObject {
         bundledVersion = HelperConstants.bundledVersion
         guard FileManager.default.fileExists(atPath: installedHelperPath) else {
             installedVersion = nil
+            installedBuild = nil
             return
         }
         let rawValue = try? String(contentsOfFile: HelperConstants.versionFilePath, encoding: .utf8)
         let value = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines)
         installedVersion = value?.isEmpty == false ? value : nil
+        let rawBuild = try? String(contentsOfFile: HelperConstants.buildFilePath, encoding: .utf8)
+        let build = rawBuild?.trimmingCharacters(in: .whitespacesAndNewlines)
+        installedBuild = build?.isEmpty == false ? build : nil
     }
 }
 
@@ -496,6 +487,11 @@ private enum HelperInstaller {
         let helperDestination = "/Library/PrivilegedHelperTools/com.betacat.batteryforge.helper"
         let plistDestination = "/Library/LaunchDaemons/com.betacat.batteryforge.helper.plist"
         let versionDestination = HelperConstants.versionFilePath
+        let buildDestination = HelperConstants.buildFilePath
+        guard let version = HelperConstants.bundledVersion,
+              let build = HelperConstants.bundledBuild else {
+            throw HelperManagerError.helper(AppLanguage.localized("helper.error.build_metadata_missing"))
+        }
         let command = [
             "/bin/mkdir -p '/Library/Application Support/BatteryForge'",
             "/usr/bin/touch '/Library/Application Support/BatteryForge/force-stop'",
@@ -510,9 +506,12 @@ private enum HelperInstaller {
             "/bin/cp \(shellQuote(plistURL.path)) \(shellQuote(plistDestination))",
             "/usr/sbin/chown root:wheel \(shellQuote(plistDestination))",
             "/bin/chmod 644 \(shellQuote(plistDestination))",
-            "/bin/echo \(shellQuote(HelperConstants.bundledVersion)) > \(shellQuote(versionDestination))",
+            "/bin/echo \(shellQuote(version)) > \(shellQuote(versionDestination))",
             "/usr/sbin/chown root:wheel \(shellQuote(versionDestination))",
             "/bin/chmod 644 \(shellQuote(versionDestination))",
+            "/bin/echo \(shellQuote(build)) > \(shellQuote(buildDestination))",
+            "/usr/sbin/chown root:wheel \(shellQuote(buildDestination))",
+            "/bin/chmod 644 \(shellQuote(buildDestination))",
             "/bin/launchctl bootstrap system \(shellQuote(plistDestination))"
         ].joined(separator: "; ")
         let appleScript = "do shell script \"\(appleScriptQuote(command))\" with administrator privileges"
@@ -543,6 +542,7 @@ private enum HelperInstaller {
             "/bin/rm -f /Library/PrivilegedHelperTools/cn.com.betacat.battery.helper",
             "/bin/rm -f /Library/LaunchDaemons/cn.com.betacat.battery.helper.plist",
             "/bin/rm -f \(shellQuote(HelperConstants.versionFilePath))",
+            "/bin/rm -f \(shellQuote(HelperConstants.buildFilePath))",
             "/bin/rm -f '/Library/Application Support/BatteryForge/force-stop'"
         ].joined(separator: "; ")
         let appleScript = "do shell script \"\(appleScriptQuote(command))\" with administrator privileges"

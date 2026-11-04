@@ -14,6 +14,8 @@
 		C10000000000000000000013 /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000003 /* SMC.swift */; };
 		C10000000000000000000014 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000004 /* XPCProtocol.swift */; };
 		C10000000000000000000015 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000005 /* main.swift */; };
+		D10000000000000000000001 /* BatteryForgeCore in Frameworks */ = {isa = PBXBuildFile; productRef = D10000000000000000000002 /* BatteryForgeCore */; };
+		F10000000000000000000001 /* BatteryForgeCore in Frameworks */ = {isa = PBXBuildFile; productRef = F10000000000000000000002 /* BatteryForgeCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +68,7 @@
 		B10000000000000000000017 /* Exceptions for "BatteryForge" folder in "BatteryForge" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Info.plist,
 				com.betacat.batteryforge.helper.plist,
 			);
 			target = 29CAD9D8304C37BC0038710E /* BatteryForge */;
@@ -88,6 +91,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D10000000000000000000001 /* BatteryForgeCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -95,6 +99,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F10000000000000000000001 /* BatteryForgeCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -163,6 +168,7 @@
 			);
 			name = BatteryForge;
 			packageProductDependencies = (
+				D10000000000000000000002 /* BatteryForgeCore */,
 			);
 			productName = BatteryForge;
 			productReference = 29CAD9D9304C37BC0038710E /* BatteryForge.app */;
@@ -181,6 +187,7 @@
 			);
 			name = BatteryForgeHelper;
 			packageProductDependencies = (
+				F10000000000000000000002 /* BatteryForgeCore */,
 			);
 			productName = BatteryForgeHelper;
 			productReference = B10000000000000000000002 /* BatteryForgeHelper */;
@@ -214,6 +221,9 @@
 			);
 			mainGroup = 29CAD9D0304C37BC0038710E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D10000000000000000000012 /* XCLocalSwiftPackageReference "Packages/BatteryForgeCore" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 29CAD9DA304C37BC0038710E /* Products */;
 			projectDirPath = "";
@@ -269,6 +279,8 @@
 		29CAD9E2304C37BD0038710E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				BATTERYFORGE_HELPER_VERSION = 0.0.5;
+				CURRENT_PROJECT_VERSION = 2;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
@@ -336,6 +348,8 @@
 		29CAD9E3304C37BD0038710E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				BATTERYFORGE_HELPER_VERSION = 0.0.5;
+				CURRENT_PROJECT_VERSION = 2;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
@@ -400,7 +414,6 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = TRM3RPP378;
 				ENABLE_APP_SANDBOX = NO;
@@ -409,6 +422,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = BatteryForge;
+				INFOPLIST_FILE = BatteryForge/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -436,7 +450,6 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = TRM3RPP378;
 				ENABLE_APP_SANDBOX = NO;
@@ -445,6 +458,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = BatteryForge;
+				INFOPLIST_FILE = BatteryForge/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -467,15 +481,15 @@
 		B10000000000000000000015 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = TRM3RPP378;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.0.3;
+				MARKETING_VERSION = "$(BATTERYFORGE_HELPER_VERSION)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.betacat.batteryforge.helper;
 				PRODUCT_NAME = BatteryForgeHelper;
 				SKIP_INSTALL = YES;
@@ -487,15 +501,15 @@
 		B10000000000000000000016 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = TRM3RPP378;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.0.3;
+				MARKETING_VERSION = "$(BATTERYFORGE_HELPER_VERSION)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.betacat.batteryforge.helper;
 				PRODUCT_NAME = BatteryForgeHelper;
 				SKIP_INSTALL = YES;
@@ -535,6 +549,24 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D10000000000000000000012 /* XCLocalSwiftPackageReference "Packages/BatteryForgeCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/BatteryForgeCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D10000000000000000000002 /* BatteryForgeCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = BatteryForgeCore;
+		};
+		F10000000000000000000002 /* BatteryForgeCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = BatteryForgeCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 29CAD9D1304C37BC0038710E /* Project object */;
 }

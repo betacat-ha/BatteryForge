@@ -1,3 +1,4 @@
+import BatteryForgeCore
 import SwiftUI
 
 struct OverviewTabView: View {

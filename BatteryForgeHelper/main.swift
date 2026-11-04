@@ -1,5 +1,15 @@
 import Foundation
 
+guard !helperVersion.isEmpty, !helperBuild.isEmpty else {
+    FileHandle.standardError.write(Data("BatteryForgeHelper build metadata is missing\n".utf8))
+    exit(1)
+}
+
+if CommandLine.arguments.dropFirst().first == "--build" {
+    FileHandle.standardOutput.write(Data("\(helperBuild)\n".utf8))
+    exit(0)
+}
+
 if CommandLine.arguments.dropFirst().first == "--version" {
     FileHandle.standardOutput.write(Data("\(helperVersion)\n".utf8))
     exit(0)
