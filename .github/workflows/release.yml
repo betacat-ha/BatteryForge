@@ -9,7 +9,7 @@ on:
       channel:
         description: Release channel
         required: true
-        default: beta
+        default: release
         type: choice
         options:
           - release
@@ -68,12 +68,12 @@ jobs:
           version="$(awk '/ MARKETING_VERSION = / { print $3; exit }' <<< "$settings")"
           helper_version="$(awk '/ BATTERYFORGE_HELPER_VERSION = / { print $3; exit }' <<< "$settings")"
 
-          if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid MARKETING_VERSION: $version" >&2
             exit 1
           fi
 
-          if [[ ! "$helper_version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
+          if [[ ! "$helper_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid BATTERYFORGE_HELPER_VERSION: $helper_version" >&2
             exit 1
           fi
@@ -81,13 +81,12 @@ jobs:
           echo "helper_version=$helper_version" >> "$GITHUB_OUTPUT"
           if [[ "$channel" == "release" ]]; then
             tag="v${version}"
-            title="BatteryForge ${version}"
             prerelease="false"
           else
             tag="v${version}-${channel}.${GITHUB_RUN_NUMBER}"
-            title="BatteryForge ${version} ${channel}.${GITHUB_RUN_NUMBER}"
             prerelease="true"
           fi
+          title="$tag"
 
           echo "channel=$channel" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
